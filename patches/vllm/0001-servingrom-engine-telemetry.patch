@@ -1,0 +1,302 @@
+--- a/vllm/v1/engine/core.py
++++ b/vllm/v1/engine/core.py
+@@ -84,6 +84,8 @@
+ from vllm.v1.utils import compute_iteration_details
+ from vllm.version import __version__ as VLLM_VERSION
+ 
++from servingrom_telemetry.internal import get_internal_telemetry
++
+ logger = init_logger(__name__)
+ 
+ HANDSHAKE_TIMEOUT_MINS = 5
+@@ -217,7 +219,6 @@
+             self.step if self.batch_queue is None else self.step_with_batch_queue
+         )
+         self.async_scheduling = vllm_config.scheduler_config.async_scheduling
+-
+         self.aborts_queue = queue.Queue[list[str]]()
+ 
+         self._idle_state_callbacks: list[Callable] = []
+@@ -230,6 +231,207 @@
+         # Enable environment variable cache (e.g. assume no more
+         # environment variable overrides after this point)
+         enable_envs_cache()
++        self._servingrom = get_internal_telemetry()
++
++    def _servingrom_queue_counts(self) -> tuple[int, int]:
++        running = len(getattr(self.scheduler, "running", ()))
++        waiting = len(getattr(self.scheduler, "waiting", ())) + len(
++            getattr(self.scheduler, "skipped_waiting", ())
++        )
++        return running, waiting
++
++    def _servingrom_schedule(self) -> SchedulerOutput:
++        iteration_id = self._servingrom.next_iteration_id()
++        schedule_begin_wall_ns = time.time_ns()
++        schedule_begin_mono_ns = time.monotonic_ns()
++        running_before, waiting_before = self._servingrom_queue_counts()
++        scheduler_output = self.scheduler.schedule()
++        schedule_end_mono_ns = time.monotonic_ns()
++        schedule_end_wall_ns = time.time_ns()
++
++        new_ids = {item.req_id for item in scheduler_output.scheduled_new_reqs}
++        cached = scheduler_output.scheduled_cached_reqs
++        cached_before = {
++            req_id: (computed, output)
++            for req_id, computed, output in zip(
++                cached.req_ids, cached.num_computed_tokens, cached.num_output_tokens
++            )
++        }
++        new_before = {
++            item.req_id: item.num_computed_tokens
++            for item in scheduler_output.scheduled_new_reqs
++        }
++        new_blocks = {
++            item.req_id: sum(len(group) for group in item.block_ids)
++            for item in scheduler_output.scheduled_new_reqs
++        }
++        new_blocks.update(
++            {
++                req_id: (
++                    sum(len(group) for group in groups) if groups is not None else 0
++                )
++                for req_id, groups in zip(cached.req_ids, cached.new_block_ids)
++            }
++        )
++        members = []
++        for request_id, scheduled_tokens in scheduler_output.num_scheduled_tokens.items():
++            request = getattr(self.scheduler, "requests", {}).get(request_id)
++            computed_before, output_before = cached_before.get(
++                request_id, (new_before.get(request_id, 0), 0)
++            )
++            resumed = request_id in cached.resumed_req_ids
++            members.append(
++                {
++                    "request_id": request_id,
++                    "request_state_before": (
++                        "new"
++                        if request_id in new_ids
++                        else "resumed"
++                        if resumed
++                        else getattr(getattr(request, "status", None), "name", "unknown")
++                    ),
++                    "scheduled_tokens": scheduled_tokens,
++                    "computed_tokens_before": computed_before,
++                    "output_tokens_before": output_before,
++                    "context_tokens_before": computed_before,
++                    "new_kv_blocks": new_blocks.get(request_id, 0),
++                    "resumed": resumed,
++                    "preempted": request_id
++                    in (scheduler_output.preempted_req_ids or set()),
++                }
++            )
++
++        state = {
++            "iteration_id": iteration_id,
++            "schedule_begin_wall_ns": schedule_begin_wall_ns,
++            "schedule_begin_mono_ns": schedule_begin_mono_ns,
++            "schedule_end_wall_ns": schedule_end_wall_ns,
++            "schedule_end_mono_ns": schedule_end_mono_ns,
++            "running_before": running_before,
++            "waiting_before": waiting_before,
++            "members": members,
++            "model_submit_begin_wall_ns": None,
++            "model_submit_begin_mono_ns": None,
++            "model_submit_end_wall_ns": None,
++            "model_submit_end_mono_ns": None,
++        }
++        setattr(scheduler_output, "_servingrom_state", state)
++        self._servingrom.emit(
++            "scheduler_membership",
++            {"iteration_id": iteration_id, "members": members},
++        )
++        return scheduler_output
++
++    def _servingrom_execute_model(self, scheduler_output: SchedulerOutput):
++        state = getattr(scheduler_output, "_servingrom_state", None)
++        if state is not None:
++            state["model_submit_begin_wall_ns"] = time.time_ns()
++            state["model_submit_begin_mono_ns"] = time.monotonic_ns()
++        future = self.model_executor.execute_model(scheduler_output, non_block=True)
++        if state is not None:
++            state["model_submit_end_mono_ns"] = time.monotonic_ns()
++            state["model_submit_end_wall_ns"] = time.time_ns()
++        return future
++
++    def _servingrom_update_from_output(self, scheduler_output, model_output):
++        engine_core_outputs = self.scheduler.update_from_output(
++            scheduler_output, model_output
++        )
++        state = getattr(scheduler_output, "_servingrom_state", None)
++        if state is None:
++            return engine_core_outputs
++
++        output_update_end_mono_ns = time.monotonic_ns()
++        output_update_end_wall_ns = time.time_ns()
++        running_after, waiting_after = self._servingrom_queue_counts()
++        output_before = {
++            member["request_id"]: member["output_tokens_before"]
++            for member in state["members"]
++        }
++        output_members = []
++        for grouped_outputs in engine_core_outputs.values():
++            for output in grouped_outputs.outputs:
++                count = len(output.new_token_ids)
++                start = output_before.get(output.request_id, 0)
++                output_members.append(
++                    {
++                        "request_id": output.request_id,
++                        "new_token_count": count,
++                        "generated_token_index_start": start if count else None,
++                        "generated_token_index_end": start + count - 1 if count else None,
++                        "is_first_token": bool(count and start == 0),
++                        "finish_reason": (
++                            str(output.finish_reason)
++                            if output.finish_reason is not None
++                            else None
++                        ),
++                        "stop_reason": (
++                            str(output.stop_reason)
++                            if output.stop_reason is not None
++                            else None
++                        ),
++                    }
++                )
++                if output.finish_reason is not None:
++                    self._servingrom.emit(
++                        "engine_request_terminal",
++                        {
++                            "iteration_id": state["iteration_id"],
++                            "finish_reason": str(output.finish_reason),
++                            "stop_reason": (
++                                str(output.stop_reason)
++                                if output.stop_reason is not None
++                                else None
++                            ),
++                        },
++                        request_id=output.request_id,
++                    )
++        if output_members:
++            self._servingrom.emit(
++                "engine_output_batch",
++                {"iteration_id": state["iteration_id"], "members": output_members},
++            )
++
++        submit_begin = state["model_submit_begin_mono_ns"]
++        submit_end = state["model_submit_end_mono_ns"]
++        self._servingrom.emit(
++            "scheduler_iteration",
++            {
++                **{key: value for key, value in state.items() if key != "members"},
++                "output_update_end_wall_ns": output_update_end_wall_ns,
++                "output_update_end_mono_ns": output_update_end_mono_ns,
++                "scheduler_duration_ns": (
++                    state["schedule_end_mono_ns"] - state["schedule_begin_mono_ns"]
++                ),
++                "host_model_submit_duration_ns": (
++                    submit_end - submit_begin
++                    if submit_begin is not None and submit_end is not None
++                    else None
++                ),
++                "iteration_host_duration_ns": (
++                    output_update_end_mono_ns - state["schedule_begin_mono_ns"]
++                ),
++                "waiting_after": waiting_after,
++                "running_after": running_after,
++                "token_budget": getattr(
++                    self.scheduler, "max_num_scheduled_tokens", None
++                ),
++                "scheduled_tokens_total": scheduler_output.total_num_scheduled_tokens,
++                "scheduled_request_count": len(scheduler_output.num_scheduled_tokens),
++                "new_count": len(scheduler_output.scheduled_new_reqs),
++                "resumed_count": len(
++                    scheduler_output.scheduled_cached_reqs.resumed_req_ids
++                ),
++                "preempted_count": len(scheduler_output.preempted_req_ids or set()),
++                "finished_count": len(scheduler_output.finished_req_ids),
++                "kv_blocks_allocated": sum(
++                    member["new_kv_blocks"] for member in state["members"]
++                ),
++                "kv_blocks_freed": None,
++                "async_scheduling": self.async_scheduling,
++            },
++        )
++        return engine_core_outputs
+ 
+     @instrument(span_name="Prepare model")
+     def _initialize_kv_caches(self, vllm_config: VllmConfig) -> KVCacheConfig:
+@@ -366,6 +568,16 @@
+             )
+ 
+         self.scheduler.add_request(request)
++        self._servingrom.emit(
++            "engine_request_added",
++            {
++                "prompt_tokens": request.num_prompt_tokens,
++                "max_output_tokens": request.max_tokens,
++                "request_wave": request_wave,
++                "has_kv_transfer": request.kv_transfer_params is not None,
++            },
++            request_id=request.request_id,
++        )
+         if request.abort_immediately:
+             # Immediately abort so the connector's request_finished hook runs
+             # to free any pre-admission KV-transfer resources.
+@@ -377,7 +589,13 @@
+         # TODO: The scheduler doesn't really need to know the
+         # specific finish reason, TBD whether we propagate that
+         # (i.e. client-aborted vs stop criteria met).
+-        self.scheduler.finish_requests(request_ids, RequestStatus.FINISHED_ABORTED)
++        aborted = self.scheduler.finish_requests(
++            request_ids, RequestStatus.FINISHED_ABORTED
++        )
++        for request_id, _ in aborted:
++            self._servingrom.emit(
++                "engine_request_aborted", {}, request_id=request_id
++            )
+ 
+     @contextmanager
+     def log_error_detail(self, scheduler_output: SchedulerOutput):
+@@ -436,8 +654,8 @@
+         # or finished and not yet removed from the batch.
+         if not self.scheduler.has_requests():
+             return {}, False
+-        scheduler_output = self.scheduler.schedule()
+-        future = self.model_executor.execute_model(scheduler_output, non_block=True)
++        scheduler_output = self._servingrom_schedule()
++        future = self._servingrom_execute_model(scheduler_output)
+         grammar_output = self.scheduler.get_grammar_bitmask(scheduler_output)
+         with (
+             self.log_error_detail(scheduler_output),
+@@ -450,7 +668,7 @@
+         # Before processing the model output, process any aborts that happened
+         # during the model execution.
+         self._process_aborts_queue()
+-        engine_core_outputs = self.scheduler.update_from_output(
++        engine_core_outputs = self._servingrom_update_from_output(
+             scheduler_output, model_output
+         )
+ 
+@@ -494,11 +712,9 @@
+         model_executed = False
+         deferred_scheduler_output = None
+         if self.scheduler.has_requests():
+-            scheduler_output = self.scheduler.schedule()
++            scheduler_output = self._servingrom_schedule()
+             with self.log_error_detail(scheduler_output):
+-                exec_future = self.model_executor.execute_model(
+-                    scheduler_output, non_block=True
+-                )
++                exec_future = self._servingrom_execute_model(scheduler_output)
+             if self.is_ec_consumer:
+                 model_executed = scheduler_output.total_num_scheduled_tokens > 0
+ 
+@@ -554,7 +770,7 @@
+         # Before processing the model output, process any aborts that happened
+         # during the model execution.
+         self._process_aborts_queue()
+-        engine_core_outputs = self.scheduler.update_from_output(
++        engine_core_outputs = self._servingrom_update_from_output(
+             scheduler_output, model_output
+         )
+ 

@@ -1,0 +1,38 @@
+ARG BASE_IMAGE=110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-20260730
+FROM ${BASE_IMAGE}
+
+ARG BASE_IMAGE
+ARG BASE_MANIFEST_DIGEST=sha256:15c3a3db3772807cc09d9ad37756cd973e3b078956b6a239375ec4ae23317133
+ARG VLLM_COMMIT=0decac0d96c42b49572498019f0a0e3600f50398
+ARG VLLM_ASCEND_COMMIT=5f6faa0cb8830f667266f3b8121cd1383606f2a1
+ARG REPOSITORY_COMMIT=unknown
+
+COPY servingrom_telemetry /opt/servingrom/servingrom_telemetry
+COPY patches /opt/servingrom/patches
+COPY tests/test_engine_telemetry_patch.py /opt/servingrom/tests/test_engine_telemetry_patch.py
+
+RUN set -eux; \
+    test "$(git -C /vllm-workspace/vllm rev-parse HEAD)" = "${VLLM_COMMIT}"; \
+    test "$(git -C /vllm-workspace/vllm-ascend rev-parse HEAD)" = "${VLLM_ASCEND_COMMIT}"; \
+    git -C /vllm-workspace/vllm apply --check \
+      /opt/servingrom/patches/vllm/0001-servingrom-engine-telemetry.patch; \
+    git -C /vllm-workspace/vllm apply \
+      /opt/servingrom/patches/vllm/0001-servingrom-engine-telemetry.patch; \
+    python -c 'import pathlib, site; pathlib.Path(site.getsitepackages()[0], "servingrom.pth").write_text("/opt/servingrom\n")'; \
+    python -m compileall -q \
+      /opt/servingrom/servingrom_telemetry \
+      /vllm-workspace/vllm/vllm/v1/engine/core.py; \
+    sha256sum /opt/servingrom/patches/*/*.patch 2>/dev/null \
+      > /opt/servingrom/PATCH_SHA256SUMS; \
+    printf '%s\n' \
+      "base_image=${BASE_IMAGE}" \
+      "base_manifest_digest=${BASE_MANIFEST_DIGEST}" \
+      "vllm_commit=${VLLM_COMMIT}" \
+      "vllm_ascend_commit=${VLLM_ASCEND_COMMIT}" \
+      "repository_commit=${REPOSITORY_COMMIT}" \
+      > /opt/servingrom/BUILD_METADATA
+
+LABEL org.opencontainers.image.title="ServingROM instrumented 1P2D worker" \
+      org.opencontainers.image.revision="${REPOSITORY_COMMIT}" \
+      ai.servingrom.vllm.commit="${VLLM_COMMIT}" \
+      ai.servingrom.vllm_ascend.commit="${VLLM_ASCEND_COMMIT}"
