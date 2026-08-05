@@ -966,8 +966,6 @@ async def servingrom_telemetry_drain():
     except Exception:
         logger.warning("ServingROM telemetry drain failed", exc_info=True)
         return JSONResponse(status_code=500, content={"closed": False, "health_error": True})
-
-
 def create_app():
     setup_logging(get_global_args().log_level)
     return app

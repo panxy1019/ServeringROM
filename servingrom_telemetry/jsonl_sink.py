@@ -26,9 +26,7 @@ class RotatingJSONLSink:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def _open(self) -> None:
-        path = self.output_dir / (
-            f"{self.component}-{self.process_instance_id}-{self._index:05d}.jsonl"
-        )
+        path = self.output_dir / f"{self.process_instance_id}.{self._index:05d}.jsonl"
         self._file = path.open("ab", buffering=256 * 1024)
         self._size = path.stat().st_size
         self.paths.append(path)

@@ -149,7 +149,7 @@ class AsyncJSONLWriter:
                 "jsonl_files": [path.name for path in self._sink.paths],
             }
         )
-        path = self._output_dir / f"{self._component}-{self._process_instance_id}.summary.json"
+        path = self._output_dir / f"{self._process_instance_id}.summary.json"
         temporary = path.with_suffix(path.suffix + ".tmp")
         try:
             temporary.write_text(

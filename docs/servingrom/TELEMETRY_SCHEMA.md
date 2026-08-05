@@ -105,13 +105,37 @@ external_request_id (optional)
 文件名：
 
 ```text
-<component>-<process_instance_id>-00000.jsonl
-<component>-<process_instance_id>-00001.jsonl
+<process_instance_id>.00000.jsonl
+<process_instance_id>.00001.jsonl
 ...
-<component>-<process_instance_id>.summary.json
+<process_instance_id>.summary.json
 ```
 
 每个进程必须使用独立 `process_instance_id` 和文件集，不允许多个进程共享一个 JSONL 文件。单个事件大于轮转阈值时允许该文件超过阈值，以保持事件行不可拆分。
+
+## Proxy run 目录
+
+Proxy 采集使用不可混用的实验与运行标识：
+
+```text
+results/<experiment_id>/<run_id>/
+├── metadata/
+│   ├── run.yaml
+│   ├── deployment.yaml
+│   ├── git.json
+│   ├── image.json
+│   ├── process.json
+│   ├── telemetry_config.json
+│   ├── schema_versions.json
+│   └── sha256_manifest.json
+├── raw/proxy/
+├── derived/
+└── reports/
+```
+
+`run.yaml` 当前写成 JSON 语法的 YAML 子集，便于只依赖 Python 标准库读取。run 结束并确认 writer drain 后才生成 `sha256_manifest.json`；清单只读取 raw 文件，不改写原始事件。
+
+`scripts/servingrom/install_proxy_telemetry_sidecar.sh` 只为冻结 D2 Deployment 增加 Python ConfigMap 和持久化结果卷。`scripts/servingrom/configure_proxy_telemetry_run.sh` 设置采集身份和 writer 参数；两者均不修改推理引擎参数、NPU 绑定、准入预算或 Decode 路由公式。
 
 ## Flush 与关闭
 

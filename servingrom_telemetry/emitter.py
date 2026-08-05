@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 import queue
 import threading
+import time
+from collections import deque
 from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any, Protocol
@@ -57,7 +59,11 @@ class NullEmitter:
         return True
 
     def health_snapshot(self) -> dict[str, Any]:
-        return {"enabled": False, **{name: 0 for name in COUNTER_NAMES}}
+        return {
+            "enabled": False,
+            "emit_latency_ns": {"count": 0, "p50": 0, "p95": 0, "p99": 0, "max": 0},
+            **{name: 0 for name in COUNTER_NAMES},
+        }
 
 
 SinkFactory = Callable[[Path, str, str, int], RotatingJSONLSink]
@@ -86,6 +92,7 @@ class AsyncTelemetryEmitter:
         self._queue: queue.Queue[dict[str, Any]] = queue.Queue(config.queue_capacity)
         self._counters = TelemetryCounters()
         self._emit_lock = threading.Lock()
+        self._emit_latencies_ns: deque[int] = deque(maxlen=100_000)
         self._accepting = True
         sink = sink_factory(
             config.output_dir,
@@ -122,11 +129,12 @@ class AsyncTelemetryEmitter:
         request_id: str | None = None,
         external_request_id: str | None = None,
     ) -> bool:
+        started_ns = time.perf_counter_ns()
         self._counters.increment("events_attempted")
         with self._emit_lock:
             if not self._accepting:
                 self._counters.increment("events_dropped_writer_failed")
-                return False
+                return self._finish_emit(False, started_ns)
             try:
                 sample = self._clock.sample()
                 event = build_event(
@@ -151,16 +159,20 @@ class AsyncTelemetryEmitter:
                 )
             except Exception:
                 self._counters.increment("event_build_errors")
-                return False
+                return self._finish_emit(False, started_ns)
             try:
                 self._queue.put_nowait(event)
             except queue.Full:
                 self._counters.increment("events_dropped_queue_full")
                 self._counters.update_queue_depth(self._queue.qsize())
-                return False
+                return self._finish_emit(False, started_ns)
             self._counters.increment("events_enqueued")
             self._counters.update_queue_depth(self._queue.qsize())
-            return True
+            return self._finish_emit(True, started_ns)
+
+    def _finish_emit(self, result: bool, started_ns: int) -> bool:
+        self._emit_latencies_ns.append(time.perf_counter_ns() - started_ns)
+        return result
 
     def flush(self, timeout_s: float | None = None) -> bool:
         target = self._counters.snapshot()["events_enqueued"]
@@ -173,13 +185,30 @@ class AsyncTelemetryEmitter:
         return self._writer.close(target, timeout_s)
 
     def health_snapshot(self) -> dict[str, Any]:
+        with self._emit_lock:
+            accepting = self._accepting
+            latencies = sorted(self._emit_latencies_ns)
+
+        def percentile(percent: float) -> int:
+            if not latencies:
+                return 0
+            index = min(len(latencies) - 1, max(0, int((len(latencies) - 1) * percent)))
+            return latencies[index]
+
         return {
             "enabled": True,
-            "accepting": self._accepting,
+            "accepting": accepting,
             "writer_alive": self._writer.thread.is_alive(),
             "process_id": self._process_id,
             "process_instance_id": self._process_instance_id,
             "output_files": [str(path) for path in self._writer.paths],
+            "emit_latency_ns": {
+                "count": len(latencies),
+                "p50": percentile(0.50),
+                "p95": percentile(0.95),
+                "p99": percentile(0.99),
+                "max": latencies[-1] if latencies else 0,
+            },
             **self._counters.snapshot(),
         }
 

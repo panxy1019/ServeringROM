@@ -103,6 +103,8 @@ class EmitterWriterTest(TestCase):
             self.assertEqual([event["event_seq"] for event in events], list(range(1, 101)))
             health = emitter.health_snapshot()
             self.assertEqual(health["events_written"], health["events_enqueued"])
+            self.assertEqual(health["emit_latency_ns"]["count"], 100)
+            self.assertGreater(health["emit_latency_ns"]["p95"], 0)
             self.assertTrue(list(Path(directory).glob("*.summary.json")))
 
     def test_multithread_writes_have_unique_sequence(self) -> None:
