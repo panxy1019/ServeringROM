@@ -847,6 +847,15 @@ def parse_args() -> argparse.Namespace:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Log level for the proxy server.",
     )
+    parser.add_argument(
+        "--decode-stream-chunk-telemetry",
+        action=argparse.BooleanOptionalAction,
+        default=os.getenv("SERVINGROM_DECODE_STREAM_CHUNK_ENABLED", "false")
+        .strip()
+        .lower()
+        in {"1", "true", "yes", "on"},
+        help="Emit Proxy receive/yield chunk events for short validation runs.",
+    )
     args = parser.parse_args()
     if len(args.prefiller_hosts) != len(args.prefiller_ports):
         raise ValueError("Number of prefiller hosts must match number of prefiller ports")
@@ -1433,16 +1442,17 @@ async def handle_completions_impl(api: str, request: Request):
                         max_retries=args.max_retries,
                         base_delay=args.retry_delay,
                     ):
-                        emit_proxy_event(
-                            trace_context,
-                            "decode_stream_chunk",
-                            {
-                                "backend_endpoint": instance_info.decoder_key,
-                                "chunk_index": chunk_index,
-                                "chunk_bytes": len(chunk),
-                                "stream_to_client": stream_flag,
-                            },
-                        )
+                        if getattr(args, "decode_stream_chunk_telemetry", False):
+                            emit_proxy_event(
+                                trace_context,
+                                "decode_stream_chunk",
+                                {
+                                    "backend_endpoint": instance_info.decoder_key,
+                                    "chunk_index": chunk_index,
+                                    "chunk_bytes": len(chunk),
+                                    "stream_to_client": stream_flag,
+                                },
+                            )
                         chunk_index += 1
                         if not first_token_logged and chunk:
                             first_token_logged = True

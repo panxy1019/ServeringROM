@@ -7,7 +7,12 @@ Mooncake. Runtime integration belongs to later phases.
 from .config import TelemetryConfig
 from .emitter import AsyncTelemetryEmitter, NullEmitter, create_emitter
 from .internal import EngineIdentity, InternalTelemetry, get_internal_telemetry
-from .run_metadata import RunLayout, build_sha256_manifest, write_run_metadata
+from .run_metadata import (
+    RunLayout,
+    build_component_inventory,
+    build_sha256_manifest,
+    write_run_metadata,
+)
 
 __all__ = [
     "AsyncTelemetryEmitter",
@@ -17,6 +22,7 @@ __all__ = [
     "InternalTelemetry",
     "RunLayout",
     "build_sha256_manifest",
+    "build_component_inventory",
     "create_emitter",
     "get_internal_telemetry",
     "write_run_metadata",

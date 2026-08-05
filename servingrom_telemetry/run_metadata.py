@@ -64,7 +64,12 @@ class RunLayout:
             experiment_id,
             run_id,
         )
-        for directory in (layout.metadata, layout.raw_proxy, layout.derived, layout.reports):
+        for directory in (
+            layout.metadata,
+            *(layout.raw_component(name) for name in RAW_COMPONENTS),
+            layout.derived,
+            layout.reports,
+        ):
             directory.mkdir(parents=True, exist_ok=True)
         return layout
 
@@ -75,6 +80,11 @@ class RunLayout:
     @property
     def raw_proxy(self) -> Path:
         return self.root / "raw" / "proxy"
+
+    def raw_component(self, component: str) -> Path:
+        if component not in RAW_COMPONENTS:
+            raise ValueError(f"unsupported raw component: {component}")
+        return self.root / "raw" / component
 
     @property
     def derived(self) -> Path:
@@ -130,3 +140,57 @@ def build_sha256_manifest(layout: RunLayout) -> dict[str, Any]:
     manifest = {"algorithm": "sha256", "file_count": len(files), "files": files}
     _atomic_json(manifest_path, manifest)
     return manifest
+
+
+RAW_COMPONENTS = (
+    "proxy",
+    "prefill",
+    "decode-0",
+    "decode-1",
+    "mooncake",
+    "device",
+)
+
+
+def build_component_inventory(layout: RunLayout) -> dict[str, Any]:
+    components: list[dict[str, Any]] = []
+    for component in RAW_COMPONENTS:
+        raw_dir = layout.raw_component(component)
+        for summary_path in sorted(raw_dir.glob("*.summary.json")):
+            summary = json.loads(summary_path.read_text(encoding="utf-8"))
+            process_instance_id = summary.get("process_instance_id")
+            event_files = sorted(raw_dir.glob(f"{process_instance_id}.*.jsonl"))
+            first_event: dict[str, Any] = {}
+            for event_path in event_files:
+                with event_path.open(encoding="utf-8") as stream:
+                    line = stream.readline()
+                if line:
+                    first_event = json.loads(line)
+                    break
+            payload = first_event.get("payload", {})
+            components.append(
+                {
+                    "component": component,
+                    "process_instance_id": process_instance_id,
+                    "pid": first_event.get("process_id"),
+                    "engine_role": payload.get("engine_role"),
+                    "engine_instance": payload.get("engine_instance"),
+                    "tp_rank": payload.get("tp_rank"),
+                    "is_driver_rank": payload.get("is_driver_rank"),
+                    "schema_version": first_event.get("schema_version"),
+                    "output_files": [path.name for path in event_files],
+                    "events_written": summary.get("events_written", 0),
+                    "events_dropped": (
+                        summary.get("events_dropped_queue_full", 0)
+                        + summary.get("events_dropped_writer_failed", 0)
+                    ),
+                    "summary_file": summary_path.name,
+                }
+            )
+    inventory = {
+        "schema_version": "servingrom.component_inventory.v1",
+        "component_count": len(components),
+        "components": components,
+    }
+    _atomic_json(layout.metadata / "component_inventory.json", inventory)
+    return inventory

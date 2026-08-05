@@ -5,7 +5,11 @@ import argparse
 import json
 from pathlib import Path
 
-from servingrom_telemetry.run_metadata import RunLayout, build_sha256_manifest
+from servingrom_telemetry.run_metadata import (
+    RunLayout,
+    build_component_inventory,
+    build_sha256_manifest,
+)
 
 
 def main() -> int:
@@ -14,7 +18,9 @@ def main() -> int:
     args = parser.parse_args()
     root = args.run_root.resolve()
     layout = RunLayout(root, root.parent.name, root.name)
-    print(json.dumps(build_sha256_manifest(layout), indent=2))
+    inventory = build_component_inventory(layout)
+    manifest = build_sha256_manifest(layout)
+    print(json.dumps({"inventory": inventory, "manifest": manifest}, indent=2))
     return 0
 
 

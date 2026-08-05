@@ -10,6 +10,7 @@ metadata:
     servingrom.openai/base-image-digest: sha256:15c3a3db3772807cc09d9ad37756cd973e3b078956b6a239375ec4ae23317133
     servingrom.openai/vllm-commit: 0decac0d96c42b49572498019f0a0e3600f50398
     servingrom.openai/vllm-ascend-commit: 5f6faa0cb8830f667266f3b8121cd1383606f2a1
+    servingrom.openai/image-tag: v0.22.1rc1-a3-ray248-servingrom-tel-v1
 spec:
   replicas: 0
   strategy:
@@ -34,12 +35,16 @@ spec:
         node.kubernetes.io/npu.chip.name: Ascend910
       containers:
         - name: pd-worker
-          image: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-20260730
-          imagePullPolicy: IfNotPresent
+          image: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-servingrom-tel-v1
+          imagePullPolicy: Always
           command: ["/bin/bash", "-lc", "--"]
-          args: ["exec /opt/qwen36-pd/pd-worker-entrypoint-decode-ab.sh"]
+          args: ["exec /opt/servingrom/scripts/pd-worker-entrypoint-instrumented.sh"]
           env:
             - {name: SERVINGROM_CONFIG_ID, value: qwen36-1p2d-d2-full-decode-only-async-v1}
+            - {name: SERVINGROM_TELEMETRY_ENABLED, value: "true"}
+            - {name: SERVINGROM_EXPERIMENT_ID, value: servingrom-internal-phase-a}
+            - {name: SERVINGROM_RUN_ID, value: phase-a-placeholder}
+            - {name: SERVINGROM_RESULTS_ROOT, value: /servingrom-results}
             - {name: PHYSICAL_IDS, value: "10,11,12,13,14,15"}
             - {name: DECODE_AB_MODE, value: "D2"}
             - {name: MODEL_PATH, value: /models/Qwen3.6-27B-w8a8}
@@ -70,6 +75,7 @@ spec:
             - {name: npu-smi, mountPath: /usr/local/bin/npu-smi, readOnly: true}
             - {name: hccn-tool, mountPath: /usr/local/Ascend/driver/tools/hccn_tool, readOnly: true}
             - {name: hccn-conf, mountPath: /etc/hccn.conf, readOnly: true}
+            - {name: servingrom-results, mountPath: /servingrom-results}
       volumes:
         - name: model
           hostPath: {path: /home/admin/models/Qwen3.6-27B-w8a8, type: Directory}
@@ -89,6 +95,8 @@ spec:
           hostPath: {path: /usr/local/Ascend/driver/tools/hccn_tool, type: File}
         - name: hccn-conf
           hostPath: {path: /etc/hccn.conf, type: File}
+        - name: servingrom-results
+          hostPath: {path: /home/admin/servingrom-results, type: DirectoryOrCreate}
 ---
 apiVersion: v1
 kind: Service
@@ -105,4 +113,3 @@ spec:
     - {name: prefill, port: 13700, targetPort: 13700}
     - {name: decode-a, port: 13701, targetPort: 13701}
     - {name: decode-b, port: 13702, targetPort: 13702}
-
