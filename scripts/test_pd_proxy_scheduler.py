@@ -29,8 +29,16 @@ def main() -> int:
     for _ in range(4):
         backend = scheduler.pick_decoder(16)
         selected.append(backend["port"])
+        decision = backend["route_decision"]
+        assert decision["selected_decoder"] == backend["key"]
+        assert decision["active_requests_after"][backend["key"]] == 1
+        assert decision["tie_cursor_after"] == decision["tie_cursor_before"] + 1
         scheduler.release_decoder(backend["key"], 16)
     assert selected == [13701, 13702, 13701, 13702], selected
+    assert scheduler.healthcheck()["decode_active_requests"] == {
+        "0.0.0.0:13701": 0,
+        "0.0.0.0:13702": 0,
+    }
 
     first = scheduler.begin_request(60)
     try:

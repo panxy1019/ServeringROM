@@ -116,6 +116,7 @@ import argparse
 import asyncio
 import base64
 import functools
+import hashlib
 import heapq
 import ipaddress
 import json
@@ -125,7 +126,6 @@ import sys
 import tempfile
 import threading
 import time
-import uuid
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 from enum import Enum
@@ -136,6 +136,10 @@ from typing import Any, cast
 import httpx
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response, StreamingResponse
+
+from servingrom_telemetry import create_emitter
+from servingrom_telemetry.emitter import Emitter, NullEmitter
+from servingrom_telemetry.request_context import RequestTraceContext
 
 logger = logging.getLogger(__name__)
 
@@ -171,6 +175,7 @@ global_args: argparse.Namespace | None = None
 shared_scheduler: "SharedProxyScheduler | None" = None
 runtime: "WorkerRuntime | None" = None
 token_estimator: "RequestTokenEstimator | None" = None
+telemetry_emitter: Emitter = NullEmitter()
 
 
 class PrefillOverloadedError(RuntimeError):
@@ -226,6 +231,7 @@ class BackendServer:
     ordinal: int
     active_tokens: float = 0.0
     active_kv_cache: float = 0.0
+    active_requests: int = 0
     heap_seq: int = 0
 
 
@@ -247,8 +253,24 @@ def setup_logging(log_level: str) -> None:
     logger.setLevel(getattr(logging, log_level.upper()))
 
 
-def next_req_id() -> str:
-    return str(uuid.uuid4())
+def emit_proxy_event(
+    context: RequestTraceContext,
+    event_type: str,
+    payload: dict[str, Any],
+) -> bool:
+    """Best-effort telemetry boundary that must never affect request handling."""
+    try:
+        return telemetry_emitter.emit(
+            event_type,
+            payload,
+            trace_id=context.trace_id,
+            attempt_id=context.attempt_id,
+            request_id=context.request_id,
+            external_request_id=context.external_request_id,
+        )
+    except Exception:
+        logger.warning("ServingROM telemetry emit failed for %s", event_type, exc_info=True)
+        return False
 
 
 def normalize_host(host: str) -> str:
@@ -399,6 +421,10 @@ class SharedProxyScheduler:
                 "decode_expected_remaining_tokens": {
                     key: int(entry.active_tokens) for key, entry in self.decoders.items()
                 },
+                "decode_active_requests": {
+                    key: entry.active_requests for key, entry in self.decoders.items()
+                },
+                "decode_tie_cursor": self._tie_cursor[ServerRole.DECODE],
             }
 
     def _pick_fair_key(self, role: ServerRole) -> str:
@@ -486,7 +512,41 @@ class SharedProxyScheduler:
 
     def pick_decoder(self, load: float) -> dict[str, Any]:
         with self._lock:
-            return self._pick_server(ServerRole.DECODE, load, active_tokens=True)
+            before_tokens = {
+                key: int(entry.active_tokens) for key, entry in self.decoders.items()
+            }
+            before_requests = {
+                key: entry.active_requests for key, entry in self.decoders.items()
+            }
+            tie_cursor_before = self._tie_cursor[ServerRole.DECODE]
+            available_tokens = {
+                key: value
+                for key, value in before_tokens.items()
+                if key not in self._pool(ServerRole.DECODE).tainted
+            }
+            minimum = min(available_tokens.values())
+            tied = sorted(
+                key for key, value in available_tokens.items() if value == minimum
+            )
+            picked = self._pick_server(ServerRole.DECODE, load, active_tokens=True)
+            self.decoders[picked["key"]].active_requests += 1
+            picked["route_decision"] = {
+                "expected_remaining_tokens_before": before_tokens,
+                "active_requests_before": before_requests,
+                "tie_cursor_before": tie_cursor_before,
+                "expected_remaining_tokens_after": {
+                    key: int(entry.active_tokens) for key, entry in self.decoders.items()
+                },
+                "active_requests_after": {
+                    key: entry.active_requests for key, entry in self.decoders.items()
+                },
+                "tie_cursor_after": self._tie_cursor[ServerRole.DECODE],
+                "selected_decoder": picked["key"],
+                "route_reason": (
+                    "fair_tie_round_robin" if len(tied) > 1 else "minimum_expected_remaining_tokens"
+                ),
+            }
+            return picked
 
     def release_prefill_kv(self, key: str, load: float) -> None:
         with self._lock:
@@ -500,6 +560,10 @@ class SharedProxyScheduler:
     def release_decoder(self, key: str, load: float) -> None:
         with self._lock:
             self._release_load(ServerRole.DECODE, key, load, active_tokens=True)
+            if key in self.decoders:
+                self.decoders[key].active_requests = max(
+                    0, self.decoders[key].active_requests - 1
+                )
 
     def finish_request(
         self,
@@ -514,6 +578,10 @@ class SharedProxyScheduler:
                 self._release_load(ServerRole.PREFILL, prefiller_key, prefiller_load, kv_cache=True)
                 self.prefill_inflight_tokens = max(0, self.prefill_inflight_tokens - int(prefiller_load))
             self._release_load(ServerRole.DECODE, decoder_key, decoder_load, active_tokens=True)
+            if decoder_key and decoder_key in self.decoders:
+                self.decoders[decoder_key].active_requests = max(
+                    0, self.decoders[decoder_key].active_requests - 1
+                )
             self.request_num = max(0, self.request_num - 1)
 
     def get_waiting_nodes(self) -> dict[str, tuple[str, tuple[str, int], int]]:
@@ -843,8 +911,13 @@ def _ensure_scheduler(args) -> SharedProxyScheduler:
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    global runtime, token_estimator
+    global runtime, telemetry_emitter, token_estimator
     args = get_global_args()
+    try:
+        telemetry_emitter = create_emitter()
+    except Exception:
+        logger.warning("ServingROM telemetry initialization failed; continuing disabled", exc_info=True)
+        telemetry_emitter = NullEmitter()
     token_estimator = RequestTokenEstimator(args.tokenizer)
     if args.workers > 1:
         scheduler = connect_shared_scheduler(args.port)
@@ -859,12 +932,40 @@ async def lifespan(_app: FastAPI):
         len(snapshot["decode_instances"]),
         os.getpid(),
     )
-    yield
-    await runtime.close()
-    runtime = None
+    try:
+        yield
+    finally:
+        await runtime.close()
+        runtime = None
+        try:
+            telemetry_emitter.close(timeout_s=30)
+        except Exception:
+            logger.warning("ServingROM telemetry close failed", exc_info=True)
+        telemetry_emitter = NullEmitter()
 
 
 app = FastAPI(lifespan=lifespan)
+
+
+@app.get("/servingrom/telemetry/health")
+async def servingrom_telemetry_health():
+    """Expose only side-band writer health; no scheduler state is mutated."""
+    try:
+        return telemetry_emitter.health_snapshot()
+    except Exception:
+        logger.warning("ServingROM telemetry health snapshot failed", exc_info=True)
+        return {"enabled": False, "health_error": True}
+
+
+@app.post("/servingrom/telemetry/drain")
+async def servingrom_telemetry_drain():
+    """Drain this process-local writer without stopping inference services."""
+    try:
+        closed = await asyncio.to_thread(telemetry_emitter.close, 30)
+        return {"closed": closed, "health": telemetry_emitter.health_snapshot()}
+    except Exception:
+        logger.warning("ServingROM telemetry drain failed", exc_info=True)
+        return JSONResponse(status_code=500, content={"closed": False, "health_error": True})
 
 
 def create_app():
@@ -926,6 +1027,8 @@ async def send_request_to_service(
     endpoint: str,
     req_data: dict,
     request_id: str,
+    trace_context: RequestTraceContext,
+    backend_role: str,
     max_retries: int = 3,
     base_delay: float = 0.2,
 ):
@@ -941,6 +1044,17 @@ async def send_request_to_service(
             logger.warning("Attempt %s failed for %s: %s", attempt, endpoint, exc)
             last_exc = exc
             if attempt < max_retries:
+                emit_proxy_event(
+                    trace_context,
+                    "backend_retry",
+                    {
+                        "backend_role": backend_role,
+                        "backend_endpoint": str(client.base_url),
+                        "retry_index": attempt,
+                        "max_retries": max_retries,
+                        "error_type": type(exc).__name__,
+                    },
+                )
                 await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
             else:
                 logger.error("All %s attempts failed for %s.", max_retries, endpoint)
@@ -952,6 +1066,8 @@ async def stream_service_response_with_retry(
     endpoint: str,
     req_data: dict,
     request_id: str,
+    trace_context: RequestTraceContext,
+    backend_role: str,
     max_retries: int = 3,
     base_delay: float = 0.2,
 ):
@@ -968,6 +1084,17 @@ async def stream_service_response_with_retry(
         except (httpx.RequestError, httpx.HTTPStatusError) as exc:
             if attempt < max_retries:
                 logger.warning("Attempt %s failed for streaming %s: %s", attempt, endpoint, exc)
+                emit_proxy_event(
+                    trace_context,
+                    "backend_retry",
+                    {
+                        "backend_role": backend_role,
+                        "backend_endpoint": str(client.base_url),
+                        "retry_index": attempt,
+                        "max_retries": max_retries,
+                        "error_type": type(exc).__name__,
+                    },
+                )
                 await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
             else:
                 logger.error("All %s attempts failed for streaming %s.", max_retries, endpoint)
@@ -978,6 +1105,17 @@ async def stream_service_response_with_retry(
                 return
             if attempt < max_retries:
                 logger.warning("Attempt %s failed for streaming %s: %s", attempt, endpoint, exc)
+                emit_proxy_event(
+                    trace_context,
+                    "backend_retry",
+                    {
+                        "backend_role": backend_role,
+                        "backend_endpoint": str(client.base_url),
+                        "retry_index": attempt,
+                        "max_retries": max_retries,
+                        "error_type": type(exc).__name__,
+                    },
+                )
                 await asyncio.sleep(base_delay * (2 ** (attempt - 1)))
             else:
                 logger.error("All %s attempts failed for streaming %s.", max_retries, endpoint)
@@ -1013,6 +1151,7 @@ async def assign_instances(
     req_data: Any,
     prompt_tokens: int,
     expected_output_tokens: int,
+    trace_context: RequestTraceContext,
     *,
     is_initial_request: bool,
 ) -> InstanceInfo:
@@ -1022,38 +1161,101 @@ async def assign_instances(
     # prompt/KV tokens; Decode tracks the expected remaining generation budget.
     prefiller_score = float(prompt_tokens)
     decoder_score = float(expected_output_tokens)
-    request_id = next_req_id()
+    request_id = trace_context.request_id
     pick_prefill = "begin_request" if is_initial_request else "reserve_prefill_kv"
-    prefiller = await runtime.schedule(pick_prefill, prefiller_score)
+    try:
+        prefiller = await runtime.schedule(pick_prefill, prefiller_score)
+    except PrefillOverloadedError:
+        if is_initial_request:
+            emit_proxy_event(
+                trace_context,
+                "admission_decision",
+                {
+                    "accepted": False,
+                    "input_tokens": prompt_tokens,
+                    "max_prefill_inflight_tokens": args.max_prefill_inflight_tokens,
+                    "reason": "prefill_token_budget_exhausted",
+                },
+            )
+        raise
     prefiller_key = prefiller["key"]
+    if is_initial_request:
+        emit_proxy_event(
+            trace_context,
+            "admission_decision",
+            {
+                "accepted": True,
+                "input_tokens": prompt_tokens,
+                "max_prefill_inflight_tokens": args.max_prefill_inflight_tokens,
+                "selected_prefill": prefiller_key,
+                "reason": "within_prefill_token_budget",
+            },
+        )
 
-    prefill_started = time.monotonic()
+    prefill_started_ns = time.monotonic_ns()
+    emit_proxy_event(
+        trace_context,
+        "prefill_http_submit",
+        {
+            "backend_endpoint": prefiller_key,
+            "input_tokens": prompt_tokens,
+            "expected_output_tokens": expected_output_tokens,
+            "api": api,
+        },
+    )
     try:
         response = await send_request_to_service(
             await runtime.get_client(ServerRole.PREFILL, prefiller_key),
             api,
             req_data,
             request_id,
+            trace_context,
+            "prefill",
             max_retries=args.max_retries,
             base_delay=args.retry_delay,
         )
+    except asyncio.CancelledError:
+        await _abort_prefill_selection(runtime, prefiller_key, prefiller_score, is_initial_request=is_initial_request)
+        raise
     except Exception:
         await _abort_prefill_selection(runtime, prefiller_key, prefiller_score, is_initial_request=is_initial_request)
         raise
 
     kv_transfer_params = response.json().get("kv_transfer_params", {})
+    emit_proxy_event(
+        trace_context,
+        "prefill_http_complete",
+        {
+            "backend_endpoint": prefiller_key,
+            "status_code": response.status_code,
+            "duration_ns": time.monotonic_ns() - prefill_started_ns,
+            "kv_transfer_params_present": bool(kv_transfer_params),
+        },
+    )
     if kv_transfer_params:
         req_data["kv_transfer_params"] = kv_transfer_params
 
     try:
         decoder = await runtime.schedule("pick_decoder", decoder_score)
+    except asyncio.CancelledError:
+        await _abort_prefill_selection(runtime, prefiller_key, prefiller_score, is_initial_request=is_initial_request)
+        raise
     except Exception:
         await _abort_prefill_selection(runtime, prefiller_key, prefiller_score, is_initial_request=is_initial_request)
         raise
 
     prefiller_client = await runtime.get_client(ServerRole.PREFILL, prefiller_key)
     decoder_client = await runtime.get_client(ServerRole.DECODE, decoder["key"])
-    prefill_seconds = time.monotonic() - prefill_started
+    prefill_seconds = (time.monotonic_ns() - prefill_started_ns) / 1_000_000_000
+    emit_proxy_event(
+        trace_context,
+        "p_to_d_route",
+        {
+            **decoder["route_decision"],
+            "expected_output_tokens": expected_output_tokens,
+            "prefill_backend": prefiller_key,
+        },
+    )
     logger.info(
         "PD_ROUTE request_id=%s prompt_tokens=%d expected_output_tokens=%d "
         "prefill=%s decode=%s",
@@ -1082,30 +1284,93 @@ async def reassign_instances(
     prompt_tokens: int,
     expected_output_tokens: int,
     previous_instance: InstanceInfo,
+    trace_context: RequestTraceContext,
 ) -> InstanceInfo:
     runtime = get_runtime()
     await runtime.schedule("release_prefill_kv", previous_instance.prefiller_key, previous_instance.prefiller_score)
     await runtime.schedule("release_decoder", previous_instance.decoder_key, previous_instance.decoder_score)
-    return await assign_instances(api, req_data, prompt_tokens, expected_output_tokens, is_initial_request=False)
+    previous_attempt_id, previous_request_id = trace_context.begin_recompute()
+    emit_proxy_event(
+        trace_context,
+        "attempt_recomputed",
+        {
+            "previous_attempt_id": previous_attempt_id,
+            "previous_request_id": previous_request_id,
+            "new_attempt_id": trace_context.attempt_id,
+            "new_request_id": trace_context.request_id,
+            "reason": "backend_stop_reason_recomputed",
+        },
+    )
+    return await assign_instances(
+        api,
+        req_data,
+        prompt_tokens,
+        expected_output_tokens,
+        trace_context,
+        is_initial_request=False,
+    )
 
 
 async def handle_completions_impl(api: str, request: Request):
     runtime = get_runtime()
     args = get_global_args()
     request_released = False
+    trace_context = RequestTraceContext.create(request.headers.get("x-request-id"))
+    terminal_event: str | None = None
+
+    def emit_terminal(event_type: str, payload: dict[str, Any]) -> None:
+        nonlocal terminal_event
+        if terminal_event is not None:
+            logger.warning(
+                "Suppressing duplicate terminal event %s after %s for trace %s",
+                event_type,
+                terminal_event,
+                trace_context.trace_id,
+            )
+            return
+        terminal_event = event_type
+        emit_proxy_event(trace_context, event_type, payload)
+
     try:
         req_data = await request.json()
         prompt_tokens = get_token_estimator().request_tokens(req_data)
         expected_output_tokens = requested_output_tokens(req_data)
+        stream_flag = bool(req_data.get("stream", False))
+        chat_flag = "messages" in req_data
+        emit_proxy_event(
+            trace_context,
+            "request_arrival",
+            {
+                "api": api,
+                "model": req_data.get("model"),
+                "input_tokens": prompt_tokens,
+                "expected_output_tokens": expected_output_tokens,
+                "stream": stream_flag,
+                "chat": chat_flag,
+                "arrival_wall_ns": trace_context.arrival_wall_ns,
+                "arrival_mono_ns": trace_context.arrival_mono_ns,
+                "tokenization_duration_ns": time.monotonic_ns()
+                - trace_context.arrival_mono_ns,
+            },
+        )
         try:
             instance_info = await assign_instances(
                 api,
                 req_data,
                 prompt_tokens,
                 expected_output_tokens,
+                trace_context,
                 is_initial_request=True,
             )
         except PrefillOverloadedError as exc:
+            emit_terminal(
+                "request_rejected",
+                {
+                    "status_code": 429,
+                    "reason": "prefill_token_budget_exhausted",
+                    "input_tokens": prompt_tokens,
+                },
+            )
             return JSONResponse(
                 status_code=429,
                 headers={"Retry-After": "1"},
@@ -1117,9 +1382,6 @@ async def handle_completions_impl(api: str, request: Request):
                     }
                 },
             )
-        stream_flag = bool(req_data.get("stream", False))
-        chat_flag = "messages" in req_data
-
         if "prompt" in req_data:
             origin_prompt = req_data["prompt"]
         elif chat_flag:
@@ -1139,6 +1401,7 @@ async def handle_completions_impl(api: str, request: Request):
             completion_tokens = 0
             accounted_decoder_tokens = 0
             first_token_logged = False
+            chunk_index = 0
 
             async def release_prefill_kv_once() -> None:
                 nonlocal released_kv
@@ -1152,16 +1415,53 @@ async def handle_completions_impl(api: str, request: Request):
                 while retry:
                     retry = False
                     decoder_client = await runtime.get_client(ServerRole.DECODE, instance_info.decoder_key)
+                    emit_proxy_event(
+                        trace_context,
+                        "decode_http_submit",
+                        {
+                            "backend_endpoint": instance_info.decoder_key,
+                            "api": api,
+                            "expected_output_tokens": int(instance_info.decoder_score),
+                            "stream_to_client": stream_flag,
+                        },
+                    )
                     async for chunk in stream_service_response_with_retry(
                         decoder_client,
                         api,
                         req_data,
                         request_id=instance_info.request_id,
+                        trace_context=trace_context,
+                        backend_role="decode",
                         max_retries=args.max_retries,
                         base_delay=args.retry_delay,
                     ):
+                        emit_proxy_event(
+                            trace_context,
+                            "decode_stream_chunk",
+                            {
+                                "backend_endpoint": instance_info.decoder_key,
+                                "chunk_index": chunk_index,
+                                "chunk_bytes": len(chunk),
+                                "stream_to_client": stream_flag,
+                            },
+                        )
+                        chunk_index += 1
                         if not first_token_logged and chunk:
                             first_token_logged = True
+                            emit_proxy_event(
+                                trace_context,
+                                "decode_first_byte",
+                                {
+                                    "backend_endpoint": instance_info.decoder_key,
+                                    "prefill_duration_ns": int(
+                                        instance_info.prefill_seconds * 1_000_000_000
+                                    ),
+                                    "decode_wait_ns": int(
+                                        (time.monotonic() - instance_info.assigned_at)
+                                        * 1_000_000_000
+                                    ),
+                                },
+                            )
                             logger.info(
                                 "PD_FIRST_BYTE request_id=%s decode=%s:%s prefill_ms=%.3f "
                                 "decode_first_byte_ms=%.3f",
@@ -1230,9 +1530,12 @@ async def handle_completions_impl(api: str, request: Request):
                                 retry_prompt_tokens,
                                 retry_output_tokens,
                                 instance_info,
+                                trace_context,
                             )
                             accounted_decoder_tokens = 0
                             released_kv = False
+                            first_token_logged = False
+                            chunk_index = 0
                             break
                         if retry_count > 0 and not stream_flag:
                             if chat_flag:
@@ -1241,7 +1544,27 @@ async def handle_completions_impl(api: str, request: Request):
                                 choice["text"] = generated_token
                             chunk = json.dumps(chunk_json).encode("utf-8")
                         yield chunk
+                emit_terminal(
+                    "request_complete",
+                    {
+                        "output_tokens": completion_tokens,
+                        "output_sha256": hashlib.sha256(
+                            generated_token.encode("utf-8")
+                        ).hexdigest(),
+                        "attempt_count": trace_context.attempt_id + 1,
+                        "stream": stream_flag,
+                        "decoder_backend": instance_info.decoder_key,
+                    },
+                )
             except asyncio.CancelledError:
+                emit_terminal(
+                    "request_cancel",
+                    {
+                        "stage": "decode_stream",
+                        "output_tokens_before_cancel": completion_tokens,
+                        "decoder_backend": instance_info.decoder_key,
+                    },
+                )
                 logger.warning(
                     "Streaming from decoder %s:%s was cancelled; releasing request %s resources",
                     instance_info.decoder_host,
@@ -1250,6 +1573,15 @@ async def handle_completions_impl(api: str, request: Request):
                 )
                 raise
             except Exception as exc:
+                emit_terminal(
+                    "request_error",
+                    {
+                        "stage": "decode_stream",
+                        "error_type": type(exc).__name__,
+                        "output_tokens_before_error": completion_tokens,
+                        "decoder_backend": instance_info.decoder_key,
+                    },
+                )
                 logger.error(
                     "Error during streaming from decoder %s:%s: %s while handling request %s; releasing prefiller KV",
                     instance_info.decoder_host,
@@ -1271,9 +1603,19 @@ async def handle_completions_impl(api: str, request: Request):
 
         media_type = "text/event-stream; charset=utf-8" if stream_flag else "application/json"
         return StreamingResponse(generate_stream(), media_type=media_type)
-    except Exception:
+    except asyncio.CancelledError:
+        emit_terminal("request_cancel", {"stage": "request_setup"})
+        if not request_released and "instance_info" in locals():
+            await _finish_instance(runtime, instance_info, release_prefill_kv=True)
+            request_released = True
+        raise
+    except Exception as exc:
         import traceback
 
+        emit_terminal(
+            "request_error",
+            {"stage": "request_setup", "error_type": type(exc).__name__},
+        )
         exc_info = sys.exc_info()
         print(f"Error occurred in disagg prefill proxy server - {api} endpoint")
         print("".join(traceback.format_exception(*exc_info)))
