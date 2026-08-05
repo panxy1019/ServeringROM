@@ -1,0 +1,18 @@
+
+Authorized users only. All activities may be monitored and reported.
+[sudo] password for admin: sh: 28: source: not found
+sh: 29: source: not found
+sh: 30: source: not found
+--- a/vllm/v1/core/sched/output.py
++++ b/vllm/v1/core/sched/output.py
+@@ -240,6 +240,10 @@
+     # preventing stale NaN/data from corrupting attention or SSM computation.
+     new_block_ids_to_zero: list[int] | None = None
+ 
++    # Side-band ServingROM correlation ID. It is observational only and does
++    # not participate in scheduling or model execution decisions.
++    servingrom_iteration_id: int | None = None
++
+     @classmethod
+     def make_empty(cls) -> "SchedulerOutput":
+         return cls(

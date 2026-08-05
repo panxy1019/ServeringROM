@@ -17,7 +17,7 @@
          self.aborts_queue = queue.Queue[list[str]]()
  
          self._idle_state_callbacks: list[Callable] = []
-@@ -230,6 +231,207 @@
+@@ -230,6 +231,216 @@
          # Enable environment variable cache (e.g. assume no more
          # environment variable overrides after this point)
          enable_envs_cache()
@@ -31,11 +31,14 @@
 +        return running, waiting
 +
 +    def _servingrom_schedule(self) -> SchedulerOutput:
++        if not self._servingrom.enabled:
++            return self.scheduler.schedule()
 +        iteration_id = self._servingrom.next_iteration_id()
 +        schedule_begin_wall_ns = time.time_ns()
 +        schedule_begin_mono_ns = time.monotonic_ns()
 +        running_before, waiting_before = self._servingrom_queue_counts()
 +        scheduler_output = self.scheduler.schedule()
++        scheduler_output.servingrom_iteration_id = iteration_id
 +        schedule_end_mono_ns = time.monotonic_ns()
 +        schedule_end_wall_ns = time.time_ns()
 +
@@ -113,6 +116,10 @@
 +        return scheduler_output
 +
 +    def _servingrom_execute_model(self, scheduler_output: SchedulerOutput):
++        if not self._servingrom.enabled:
++            return self.model_executor.execute_model(
++                scheduler_output, non_block=True
++            )
 +        state = getattr(scheduler_output, "_servingrom_state", None)
 +        if state is not None:
 +            state["model_submit_begin_wall_ns"] = time.time_ns()
@@ -124,6 +131,8 @@
 +        return future
 +
 +    def _servingrom_update_from_output(self, scheduler_output, model_output):
++        if not self._servingrom.enabled:
++            return self.scheduler.update_from_output(scheduler_output, model_output)
 +        engine_core_outputs = self.scheduler.update_from_output(
 +            scheduler_output, model_output
 +        )
@@ -225,24 +234,25 @@
  
      @instrument(span_name="Prepare model")
      def _initialize_kv_caches(self, vllm_config: VllmConfig) -> KVCacheConfig:
-@@ -366,6 +568,16 @@
+@@ -366,6 +577,17 @@
              )
  
          self.scheduler.add_request(request)
-+        self._servingrom.emit(
-+            "engine_request_added",
-+            {
-+                "prompt_tokens": request.num_prompt_tokens,
-+                "max_output_tokens": request.max_tokens,
-+                "request_wave": request_wave,
-+                "has_kv_transfer": request.kv_transfer_params is not None,
-+            },
-+            request_id=request.request_id,
-+        )
++        if self._servingrom.enabled:
++            self._servingrom.emit(
++                "engine_request_added",
++                {
++                    "prompt_tokens": request.num_prompt_tokens,
++                    "max_output_tokens": request.max_tokens,
++                    "request_wave": request_wave,
++                    "has_kv_transfer": request.kv_transfer_params is not None,
++                },
++                request_id=request.request_id,
++            )
          if request.abort_immediately:
              # Immediately abort so the connector's request_finished hook runs
              # to free any pre-admission KV-transfer resources.
-@@ -377,7 +589,13 @@
+@@ -377,7 +599,14 @@
          # TODO: The scheduler doesn't really need to know the
          # specific finish reason, TBD whether we propagate that
          # (i.e. client-aborted vs stop criteria met).
@@ -250,14 +260,15 @@
 +        aborted = self.scheduler.finish_requests(
 +            request_ids, RequestStatus.FINISHED_ABORTED
 +        )
-+        for request_id, _ in aborted:
-+            self._servingrom.emit(
-+                "engine_request_aborted", {}, request_id=request_id
-+            )
++        if self._servingrom.enabled:
++            for request_id, _ in aborted:
++                self._servingrom.emit(
++                    "engine_request_aborted", {}, request_id=request_id
++                )
  
      @contextmanager
      def log_error_detail(self, scheduler_output: SchedulerOutput):
-@@ -436,8 +654,8 @@
+@@ -436,8 +665,8 @@
          # or finished and not yet removed from the batch.
          if not self.scheduler.has_requests():
              return {}, False
@@ -268,7 +279,7 @@
          grammar_output = self.scheduler.get_grammar_bitmask(scheduler_output)
          with (
              self.log_error_detail(scheduler_output),
-@@ -450,7 +668,7 @@
+@@ -450,7 +679,7 @@
          # Before processing the model output, process any aborts that happened
          # during the model execution.
          self._process_aborts_queue()
@@ -277,7 +288,7 @@
              scheduler_output, model_output
          )
  
-@@ -494,11 +712,9 @@
+@@ -494,11 +723,9 @@
          model_executed = False
          deferred_scheduler_output = None
          if self.scheduler.has_requests():
@@ -291,7 +302,7 @@
              if self.is_ec_consumer:
                  model_executed = scheduler_output.total_num_scheduled_tokens > 0
  
-@@ -554,7 +770,7 @@
+@@ -554,7 +781,7 @@
          # Before processing the model output, process any aborts that happened
          # during the model execution.
          self._process_aborts_queue()

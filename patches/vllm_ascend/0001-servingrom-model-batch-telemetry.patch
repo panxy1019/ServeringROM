@@ -1,0 +1,80 @@
+
+Authorized users only. All activities may be monitored and reported.
+[sudo] password for admin: sh: 28: source: not found
+sh: 29: source: not found
+sh: 30: source: not found
+--- a/vllm_ascend/worker/model_runner_v1.py
++++ b/vllm_ascend/worker/model_runner_v1.py
+@@ -156,6 +156,8 @@
+     set_weight_prefetch_method,
+     should_skip_allreduce_across_dp_group,
+ )
++
++from servingrom_telemetry.internal import get_internal_telemetry
+ from vllm_ascend.worker.npu_input_batch import NPUInputBatch
+ from vllm_ascend.worker.pcp_utils import PCPManager
+ from vllm_ascend.worker.utils import AscendKVBlockZeroer
+@@ -1902,6 +1904,10 @@
+         scheduler_output: "SchedulerOutput",
+         intermediate_tensors: IntermediateTensors | None = None,
+     ) -> ModelRunnerOutput | IntermediateTensors | None:
++        servingrom = get_internal_telemetry()
++        if servingrom.enabled:
++            servingrom_host_begin_wall_ns = time.time_ns()
++            servingrom_host_begin_mono_ns = time.monotonic_ns()
+         if self.vllm_config.model_config.enable_return_routed_experts:
+             if self.routed_experts_initialized:
+                 self.routed_experts_capturer.clear_buffer()
+@@ -2077,6 +2083,29 @@
+                     num_reqs_padded,
+                     self.parallel_config.num_ubatches,
+                 )
++                if servingrom.enabled:
++                    servingrom_batch_facts = {
++                        "iteration_id": getattr(
++                            scheduler_output, "servingrom_iteration_id", None
++                        ),
++                        "tp_rank": get_tp_group().rank_in_group,
++                        "is_driver_rank": False,
++                        "request_count": num_reqs,
++                        "scheduled_tokens": scheduler_output.total_num_scheduled_tokens,
++                        "unpadded_tokens": num_tokens_unpadded,
++                        "padded_tokens": num_tokens_padded,
++                        "padding_tokens": num_tokens_padded - num_tokens_unpadded,
++                        "execution_mode": (
++                            "eager"
++                            if cudagraph_mode == CUDAGraphMode.NONE
++                            else "graph"
++                        ),
++                        "cudagraph_mode": str(cudagraph_mode),
++                        "graph_batch_descriptor": str(batch_desc),
++                        "ubatch_count": (
++                            len(ubatch_slices) if ubatch_slices is not None else 1
++                        ),
++                    }
+ 
+                 pad_attn = cudagraph_mode == CUDAGraphMode.FULL
+ 
+@@ -2320,6 +2349,22 @@
+         # previous model forward without breaking async scheduling.
+         if deferred_state_corrections_fn:
+             deferred_state_corrections_fn()
++        if servingrom.enabled:
++            servingrom_host_end_mono_ns = time.monotonic_ns()
++            servingrom_host_end_wall_ns = time.time_ns()
++            servingrom.emit(
++                "model_execution_batch",
++                {
++                    **servingrom_batch_facts,
++                    "host_execute_begin_wall_ns": servingrom_host_begin_wall_ns,
++                    "host_execute_begin_mono_ns": servingrom_host_begin_mono_ns,
++                    "host_execute_end_wall_ns": servingrom_host_end_wall_ns,
++                    "host_execute_end_mono_ns": servingrom_host_end_mono_ns,
++                    "host_execute_duration_ns": (
++                        servingrom_host_end_mono_ns - servingrom_host_begin_mono_ns
++                    ),
++                },
++            )
+         return None
+ 
+     @torch.inference_mode()
