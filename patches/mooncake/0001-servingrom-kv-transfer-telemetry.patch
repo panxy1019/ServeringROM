@@ -1,0 +1,243 @@
+--- a/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/mooncake_connector.py
++++ b/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/mooncake_connector.py
+@@ -1,6 +1,7 @@
+ # SPDX-License-Identifier: Apache-2.0
+ # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+ import asyncio
++import hashlib
+ import logging
+ import threading
+ import time
+@@ -57,6 +58,8 @@
+ from vllm.v1.request import RequestStatus
+ from vllm.v1.worker.utils import select_common_block_size
+ 
++from servingrom_telemetry.internal import get_internal_telemetry
++
+ logger = init_logger(__name__)
+ 
+ try:
+@@ -780,6 +783,8 @@
+         self.engine_id: EngineId = engine_id
+         self.tp_rank = get_tensor_model_parallel_rank()
+         self.tp_size = get_tensor_model_parallel_world_size()
++        self._servingrom = get_internal_telemetry("mooncake")
++        self._servingrom_transfer_facts: dict[str, dict[str, int]] = {}
+         self.num_blocks = 0
+         self.block_len_per_layer: list[int] = []
+         self.seen_base_addresses: list[int] = []
+@@ -1050,6 +1055,26 @@
+                 )
+             send_meta = self.reqs_need_send[transfer_id]
+             pending_reqs[d_req_id] = send_meta
++            self._servingrom.emit(
++                "kv_transfer_enqueued",
++                {
++                    "transfer_role": "send",
++                    "source_engine": str(self.engine_id),
++                    "target_engine": None,
++                    "remote_request_id": d_req_id,
++                    "source_rank": self.tp_rank,
++                    "target_rank": meta.remote_tp_rank,
++                    "session_id_hash": hashlib.sha256(
++                        f"{meta.remote_hostname}:{meta.remote_port}".encode()
++                    ).hexdigest(),
++                    "block_count": None,
++                    "total_bytes": None,
++                    "queue_depth": self.sender_worker_queue.qsize(),
++                    "enqueue_wall_ns": time.time_ns(),
++                    "enqueue_mono_ns": time.monotonic_ns(),
++                },
++                request_id=d_req_id,
++            )
+ 
+         async def wait_and_ret(
+             d_req_id: ReqId, send_meta: SendBlockMeta
+@@ -1128,6 +1153,31 @@
+ 
+             if src_ptrs:
+                 remote_session = f"{meta.remote_hostname}:{meta.remote_port}"
++                transfer_started_wall_ns = time.time_ns()
++                transfer_started_mono_ns = time.monotonic_ns()
++                batch_total_bytes = sum(lengths)
++                session_id_hash = hashlib.sha256(remote_session.encode()).hexdigest()
++                for d_req_id, _ in ok_ready_reqs:
++                    fact = self._servingrom_transfer_facts.get(d_req_id, {})
++                    self._servingrom.emit(
++                        "kv_transfer_started",
++                        {
++                            "transfer_role": "send",
++                            "source_engine": str(self.engine_id),
++                            "target_engine": None,
++                            "remote_request_id": d_req_id,
++                            "source_rank": self.tp_rank,
++                            "target_rank": meta.remote_tp_rank,
++                            "session_id_hash": session_id_hash,
++                            "block_count": fact.get("block_count"),
++                            "total_bytes": fact.get("total_bytes"),
++                            "batch_total_bytes": batch_total_bytes,
++                            "queue_depth": self.sender_worker_queue.qsize(),
++                            "start_wall_ns": transfer_started_wall_ns,
++                            "start_mono_ns": transfer_started_mono_ns,
++                        },
++                        request_id=d_req_id,
++                    )
+                 ret_value = await self.sender_loop.run_in_executor(
+                     self._sender_executor,
+                     self._send_blocks,
+@@ -1136,6 +1186,43 @@
+                     dst_ptrs,
+                     lengths,
+                 )
++                transfer_completed_mono_ns = time.monotonic_ns()
++                transfer_completed_wall_ns = time.time_ns()
++                elapsed_ns = transfer_completed_mono_ns - transfer_started_mono_ns
++                for d_req_id, _ in ok_ready_reqs:
++                    fact = self._servingrom_transfer_facts.pop(d_req_id, {})
++                    total_bytes = fact.get("total_bytes")
++                    event_type = (
++                        "kv_transfer_completed" if ret_value == 0 else "kv_transfer_failed"
++                    )
++                    self._servingrom.emit(
++                        event_type,
++                        {
++                            "transfer_role": "send",
++                            "source_engine": str(self.engine_id),
++                            "target_engine": None,
++                            "remote_request_id": d_req_id,
++                            "source_rank": self.tp_rank,
++                            "target_rank": meta.remote_tp_rank,
++                            "session_id_hash": session_id_hash,
++                            "block_count": fact.get("block_count"),
++                            "total_bytes": total_bytes,
++                            "batch_total_bytes": batch_total_bytes,
++                            "complete_wall_ns": transfer_completed_wall_ns,
++                            "complete_mono_ns": transfer_completed_mono_ns,
++                            "elapsed_ns": elapsed_ns,
++                            "effective_bandwidth_bytes_per_s": (
++                                total_bytes * 1_000_000_000 / elapsed_ns
++                                if total_bytes is not None and elapsed_ns > 0
++                                else None
++                            ),
++                            "success": ret_value == 0,
++                            "return_code": ret_value,
++                            "timeout": False,
++                            "forced_release": False,
++                        },
++                        request_id=d_req_id,
++                    )
+ 
+                 if ret_value != 0:
+                     transfer_err_msg = f"Mooncake transfer engine returned {ret_value}"
+@@ -1196,6 +1283,7 @@
+         remote_session = f"{agent_meta.remote_hostname}:{agent_meta.remote_port}"
+ 
+         for d_req_id, send_meta in ready_reqs:
++            lengths_before = len(lengths)
+             _, remote_block_ids_per_group = agent_meta.req_blocks[d_req_id]
+ 
+             if not remote_block_ids_per_group or all(
+@@ -1345,6 +1433,12 @@
+                 len(local_block_ids),
+                 remote_session,
+             )
++            request_lengths = lengths[lengths_before:]
++            self._servingrom_transfer_facts[d_req_id] = {
++                "block_count": len(local_block_ids),
++                "total_bytes": sum(request_lengths),
++                "descriptor_count": len(request_lengths),
++            }
+ 
+         return src_ptrs, dst_ptrs, lengths, err_reqs, err_msg
+ 
+@@ -1536,6 +1630,29 @@
+         pull_metas: dict[ReqId, PullReqMeta],
+     ):
+         req_ids = set(pull_metas)
++        receive_started_wall_ns = time.time_ns()
++        receive_started_mono_ns = time.monotonic_ns()
++        for req_id in req_ids:
++            self._servingrom.emit(
++                "kv_transfer_started",
++                {
++                    "transfer_role": "receive",
++                    "source_engine": None,
++                    "target_engine": str(self.engine_id),
++                    "remote_request_id": req_id,
++                    "source_rank": None,
++                    "target_rank": self.tp_rank,
++                    "session_id_hash": hashlib.sha256(worker_addr.encode()).hexdigest(),
++                    "block_count": sum(
++                        len(group) for group in pull_metas[req_id].local_block_ids
++                    ),
++                    "total_bytes": None,
++                    "queue_depth": None,
++                    "start_wall_ns": receive_started_wall_ns,
++                    "start_mono_ns": receive_started_mono_ns,
++                },
++                request_id=req_id,
++            )
+         metadata = MooncakeXferMetadata(
+             remote_hostname=self.hostname,
+             remote_port=self.rpc_port,
+@@ -1577,9 +1694,60 @@
+                             response.err_msg,
+                         )
+                         self.xfer_stats.record_failed_recv()
++                        for req_id in req_ids:
++                            self._servingrom.emit(
++                                "kv_transfer_failed",
++                                {
++                                    "transfer_role": "receive",
++                                    "source_engine": None,
++                                    "target_engine": str(self.engine_id),
++                                    "source_rank": None,
++                                    "target_rank": self.tp_rank,
++                                    "total_bytes": None,
++                                    "success": False,
++                                    "return_code": None,
++                                    "timeout": False,
++                                    "forced_release": False,
++                                    "error_class": "remote_error",
++                                },
++                                request_id=req_id,
++                            )
+                         return
+                     self.process_pulling_result(response, pull_metas)
+                     if response.status == MooncakeXferResponseStatus.FINISH:
++                        completed_mono_ns = time.monotonic_ns()
++                        completed_wall_ns = time.time_ns()
++                        ok_reqs = set(response.ok_reqs or ())
++                        for req_id in ok_reqs:
++                            self._servingrom.emit(
++                                "kv_transfer_completed",
++                                {
++                                    "transfer_role": "receive",
++                                    "source_engine": None,
++                                    "target_engine": str(self.engine_id),
++                                    "source_rank": None,
++                                    "target_rank": self.tp_rank,
++                                    "session_id_hash": hashlib.sha256(
++                                        worker_addr.encode()
++                                    ).hexdigest(),
++                                    "block_count": sum(
++                                        len(group)
++                                        for group in pull_metas[req_id].local_block_ids
++                                    ),
++                                    "total_bytes": None,
++                                    "complete_wall_ns": completed_wall_ns,
++                                    "complete_mono_ns": completed_mono_ns,
++                                    "elapsed_ns": (
++                                        completed_mono_ns - receive_started_mono_ns
++                                    ),
++                                    "effective_bandwidth_bytes_per_s": None,
++                                    "success": True,
++                                    "return_code": 0,
++                                    "timeout": False,
++                                    "forced_release": False,
++                                },
++                                request_id=req_id,
++                            )
+                         break
+         except zmq.ContextTerminated:
+             logger.debug("ZMQ context terminated, exiting Mooncake receiver thread.")

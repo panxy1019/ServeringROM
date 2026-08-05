@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 import os
+import atexit
 import threading
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from pathlib import Path
 from typing import Any, Mapping
 
 from .emitter import Emitter, NullEmitter, create_emitter
+from .config import TelemetryConfig
 
 
 def _env_bool(name: str, default: bool = False) -> bool:
@@ -86,22 +89,42 @@ class InternalTelemetry:
             return False
 
 
-_INSTANCE: InternalTelemetry | None = None
+_INSTANCES: dict[str, InternalTelemetry] = {}
 _INSTANCE_LOCK = threading.Lock()
 
 
-def get_internal_telemetry() -> InternalTelemetry:
-    global _INSTANCE
-    if _INSTANCE is None:
+def get_internal_telemetry(component: str | None = None) -> InternalTelemetry:
+    key = component or "__default__"
+    if key not in _INSTANCES:
         with _INSTANCE_LOCK:
-            if _INSTANCE is None:
-                _INSTANCE = InternalTelemetry()
-    return _INSTANCE
+            if key not in _INSTANCES:
+                if component is None:
+                    instance = InternalTelemetry()
+                else:
+                    config = TelemetryConfig.from_env()
+                    run_root = os.environ.get("SERVINGROM_RUN_ROOT")
+                    output_dir = (
+                        Path(run_root) / "raw" / component
+                        if run_root
+                        else config.output_dir.parent / component
+                    )
+                    instance = InternalTelemetry(
+                        create_emitter(
+                            replace(
+                                config,
+                                component=component,
+                                output_dir=output_dir,
+                            )
+                        )
+                    )
+                _INSTANCES[key] = instance
+                if instance.enabled:
+                    atexit.register(instance.close)
+    return _INSTANCES[key]
 
 
 def reset_internal_telemetry_for_tests() -> None:
-    global _INSTANCE
     with _INSTANCE_LOCK:
-        if _INSTANCE is not None:
-            _INSTANCE.close()
-        _INSTANCE = None
+        for instance in _INSTANCES.values():
+            instance.close()
+        _INSTANCES.clear()
