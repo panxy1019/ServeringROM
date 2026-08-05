@@ -8,7 +8,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Mapping
 
-from .emitter import Emitter, NullEmitter, create_emitter
+from .emitter import AsyncTelemetryEmitter, Emitter, NullEmitter, create_emitter
 from .config import TelemetryConfig
 
 
@@ -95,18 +95,40 @@ _INSTANCE_LOCK = threading.Lock()
 
 def get_internal_telemetry(component: str | None = None) -> InternalTelemetry:
     key = component or "__default__"
-    if key not in _INSTANCES:
+    instance = _INSTANCES.get(key)
+    default_instance = _INSTANCES.get("__default__")
+    needs_component_upgrade = (
+        component is not None
+        and instance is not None
+        and not instance.enabled
+        and default_instance is not None
+        and default_instance.enabled
+    )
+    if instance is None or needs_component_upgrade:
         with _INSTANCE_LOCK:
-            if key not in _INSTANCES:
+            instance = _INSTANCES.get(key)
+            default_instance = _INSTANCES.get("__default__")
+            needs_component_upgrade = (
+                component is not None
+                and instance is not None
+                and not instance.enabled
+                and default_instance is not None
+                and default_instance.enabled
+            )
+            if instance is None or needs_component_upgrade:
                 if component is None:
                     instance = InternalTelemetry()
                 else:
                     config = TelemetryConfig.from_env()
                     run_root = os.environ.get("SERVINGROM_RUN_ROOT")
-                    output_dir = (
-                        Path(run_root) / "raw" / component
-                        if run_root
-                        else config.output_dir.parent / component
+                    if (
+                        not config.enabled
+                        and default_instance is not None
+                        and isinstance(default_instance.emitter, AsyncTelemetryEmitter)
+                    ):
+                        config = default_instance.emitter.config
+                    output_dir = Path(run_root) / "raw" / component if run_root else (
+                        config.output_dir.parent / component
                     )
                     instance = InternalTelemetry(
                         create_emitter(
@@ -120,7 +142,8 @@ def get_internal_telemetry(component: str | None = None) -> InternalTelemetry:
                 _INSTANCES[key] = instance
                 if instance.enabled:
                     atexit.register(instance.close)
-    return _INSTANCES[key]
+    assert instance is not None
+    return instance
 
 
 def reset_internal_telemetry_for_tests() -> None:

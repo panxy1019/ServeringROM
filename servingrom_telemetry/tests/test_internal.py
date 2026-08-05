@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from servingrom_telemetry.emitter import NullEmitter
-from servingrom_telemetry.internal import EngineIdentity, InternalTelemetry
+from servingrom_telemetry.internal import (
+    EngineIdentity,
+    InternalTelemetry,
+    get_internal_telemetry,
+    reset_internal_telemetry_for_tests,
+)
 
 
 class RecordingEmitter:
@@ -60,3 +65,23 @@ def test_emitter_failure_is_isolated() -> None:
 
     telemetry = InternalTelemetry(BrokenEmitter())
     assert telemetry.emit("scheduler_iteration", {}) is False
+
+
+def test_named_emitter_inherits_enabled_worker_config(monkeypatch, tmp_path) -> None:
+    reset_internal_telemetry_for_tests()
+    monkeypatch.setenv("SERVINGROM_TELEMETRY_ENABLED", "true")
+    monkeypatch.setenv("SERVINGROM_EXPERIMENT_ID", "experiment")
+    monkeypatch.setenv("SERVINGROM_RUN_ID", "run")
+    monkeypatch.setenv("SERVINGROM_CONFIG_ID", "config")
+    monkeypatch.setenv("SERVINGROM_COMPONENT", "prefill")
+    monkeypatch.setenv("SERVINGROM_OUTPUT_DIR", str(tmp_path / "prefill"))
+    default = get_internal_telemetry()
+    assert default.enabled
+
+    monkeypatch.setenv("SERVINGROM_TELEMETRY_ENABLED", "false")
+    mooncake = get_internal_telemetry("mooncake")
+    assert mooncake.enabled
+    assert mooncake.emit("kv_transfer_started", {"total_bytes": 1})
+    assert mooncake.close(5)
+    assert list((tmp_path / "mooncake").glob("*.jsonl"))
+    reset_internal_telemetry_for_tests()

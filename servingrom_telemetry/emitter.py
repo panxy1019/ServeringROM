@@ -117,6 +117,10 @@ class AsyncTelemetryEmitter:
         return self._process_instance_id
 
     @property
+    def config(self) -> TelemetryConfig:
+        return self._config
+
+    @property
     def output_paths(self) -> tuple[Path, ...]:
         return self._writer.paths
 
