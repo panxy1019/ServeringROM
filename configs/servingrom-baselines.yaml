@@ -1,0 +1,84 @@
+schema_version: 1
+configs:
+  qwen36-1p2d-d2-full-decode-only-async-v1:
+    purpose: servingrom_poc_collection
+    topology: 1P2D
+    image:
+      reference: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-20260730
+      digest: sha256:15c3a3db3772807cc09d9ad37756cd973e3b078956b6a239375ec4ae23317133
+    source:
+      vllm_commit: 0decac0d96c42b49572498019f0a0e3600f50398
+      vllm_ascend_commit: 5f6faa0cb8830f667266f3b8121cd1383606f2a1
+    mu:
+      prefill:
+        tensor_parallel_size: 2
+        physical_npus: [10, 11]
+        enforce_eager: true
+        max_num_batched_tokens: 8192
+        max_num_seqs: 16
+      decode_a:
+        tensor_parallel_size: 2
+        physical_npus: [12, 13]
+        cudagraph_mode: FULL_DECODE_ONLY
+        async_scheduling: true
+        max_num_batched_tokens: 4096
+        max_num_seqs: 64
+      decode_b:
+        tensor_parallel_size: 2
+        physical_npus: [14, 15]
+        cudagraph_mode: FULL_DECODE_ONLY
+        async_scheduling: true
+        max_num_batched_tokens: 4096
+        max_num_seqs: 64
+      proxy:
+        max_prefill_inflight_tokens: 8192
+        routing: token_aware_fair_min_expected_tokens
+      model:
+        served_name: qwen36-27b-w8a8
+        max_model_len: 32768
+        seed: 1024
+        quantization: ascend
+        prefix_cache: false
+      kv_connector: MooncakeConnectorV1
+
+  qwen36-1p2d-prod-full-piecewise-async-v1:
+    purpose: current_production_reference
+    topology: 1P2D
+    image:
+      reference: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-20260730
+      digest: sha256:15c3a3db3772807cc09d9ad37756cd973e3b078956b6a239375ec4ae23317133
+    source:
+      vllm_commit: 0decac0d96c42b49572498019f0a0e3600f50398
+      vllm_ascend_commit: 5f6faa0cb8830f667266f3b8121cd1383606f2a1
+    mu:
+      prefill:
+        tensor_parallel_size: 2
+        physical_npus: [10, 11]
+        enforce_eager: true
+        max_num_batched_tokens: 8192
+        max_num_seqs: 16
+      decode_a:
+        tensor_parallel_size: 2
+        physical_npus: [12, 13]
+        cudagraph_mode: FULL_AND_PIECEWISE
+        async_scheduling: true
+        max_num_batched_tokens: 4096
+        max_num_seqs: 64
+      decode_b:
+        tensor_parallel_size: 2
+        physical_npus: [14, 15]
+        cudagraph_mode: FULL_AND_PIECEWISE
+        async_scheduling: true
+        max_num_batched_tokens: 4096
+        max_num_seqs: 64
+      proxy:
+        max_prefill_inflight_tokens: 8192
+        routing: token_aware_fair_min_expected_tokens
+      model:
+        served_name: qwen36-27b-w8a8
+        max_model_len: 32768
+        seed: 1024
+        quantization: ascend
+        prefix_cache: false
+      kv_connector: MooncakeConnectorV1
+
