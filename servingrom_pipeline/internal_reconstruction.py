@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import Any
@@ -16,6 +17,11 @@ DERIVED_TABLES = (
     "kv_transfers",
     "model_execution_batches",
     "device_metrics",
+)
+
+_UUID_PATTERN = re.compile(
+    r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}",
+    re.IGNORECASE,
 )
 
 
@@ -42,8 +48,15 @@ def _attempt_index(run_root: Path) -> dict[str, dict[str, Any]]:
 
 def _base(event: dict[str, Any], attempts: dict[str, dict[str, Any]], request_id=None):
     payload = event.get("payload", {})
-    request_id = event.get("request_id") if request_id is None else request_id
-    association = attempts.get(request_id, {})
+    engine_request_id = event.get("request_id") if request_id is None else request_id
+    canonical_request_id = engine_request_id
+    association = attempts.get(engine_request_id, {})
+    if not association and engine_request_id:
+        for candidate in _UUID_PATTERN.findall(engine_request_id):
+            if candidate in attempts:
+                canonical_request_id = candidate
+                association = attempts[candidate]
+                break
     return {
         "run_id": event["run_id"],
         "config_id": event["config_id"],
@@ -53,7 +66,8 @@ def _base(event: dict[str, Any], attempts: dict[str, dict[str, Any]], request_id
         "event_type": event["event_type"],
         "ts_wall_ns": event["ts_wall_ns"],
         "ts_mono_ns": event["ts_mono_ns"],
-        "request_id": request_id,
+        "request_id": canonical_request_id,
+        "engine_request_id": engine_request_id,
         "trace_id": association.get("trace_id", event.get("trace_id")),
         "attempt_id": association.get("attempt_id", event.get("attempt_id")),
         "engine_role": payload.get("engine_role"),
@@ -84,12 +98,22 @@ def reconstruct_internal_tables(
         elif event_type == "scheduler_membership":
             for member in payload.get("members", []):
                 row = _base(event, attempts, member.get("request_id"))
-                row.update({"iteration_id": payload.get("iteration_id"), **member})
+                row.update(
+                    {
+                        "iteration_id": payload.get("iteration_id"),
+                        **{key: value for key, value in member.items() if key != "request_id"},
+                    }
+                )
                 tables["scheduler_membership"].append(row)
         elif event_type == "engine_output_batch":
             for member in payload.get("members", []):
                 row = _base(event, attempts, member.get("request_id"))
-                row.update({"iteration_id": payload.get("iteration_id"), **member})
+                row.update(
+                    {
+                        "iteration_id": payload.get("iteration_id"),
+                        **{key: value for key, value in member.items() if key != "request_id"},
+                    }
+                )
                 tables["token_emissions"].append(row)
         elif event_type.startswith("kv_transfer_"):
             row = _base(event, attempts)

@@ -96,6 +96,53 @@ class InternalPipelineTest(TestCase):
         report = validate_internal_data(Path(tempfile.mkdtemp()), tables, dataset)
         self.assertIn("membership_token_sum_mismatch", report["violation_counts"])
 
+    def test_wrapped_engine_request_id_uses_proxy_uuid(self):
+        request_id = "cb033b37-b4dd-49fb-881e-5c7e864c72d9"
+        event = self.event(
+            1,
+            "engine_request_added",
+            {"prompt_tokens": 8},
+            request_id=f"cmpl-{request_id}-0-suffix",
+        )
+        root = Path(tempfile.mkdtemp())
+        derived = root / "derived"
+        derived.mkdir()
+        try:
+            import pyarrow as pa
+            import pyarrow.parquet as pq
+        except ImportError:
+            self.skipTest("pyarrow is required")
+        pq.write_table(
+            pa.Table.from_pylist(
+                [{"request_id": request_id, "trace_id": "trace", "attempt_id": 0}]
+            ),
+            derived / "attempt_lifecycle.parquet",
+        )
+        tables = reconstruct_internal_tables(
+            root, InternalEventDataset([event], [], [], [])
+        )
+        row = tables["engine_requests"][0]
+        self.assertEqual(row["request_id"], request_id)
+        self.assertEqual(row["engine_request_id"], f"cmpl-{request_id}-0-suffix")
+
+        output = self.event(
+            2,
+            "engine_output_batch",
+            {
+                "iteration_id": 1,
+                "members": [
+                    {
+                        "request_id": f"cmpl-{request_id}-0-suffix",
+                        "new_token_count": 1,
+                    }
+                ],
+            },
+        )
+        token_tables = reconstruct_internal_tables(
+            root, InternalEventDataset([output], [], [], [])
+        )
+        self.assertEqual(token_tables["token_emissions"][0]["request_id"], request_id)
+
 
 if __name__ == "__main__":
     import unittest

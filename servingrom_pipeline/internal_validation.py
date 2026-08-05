@@ -65,7 +65,7 @@ def validate_internal_data(
     }
     for request_id, attempt in attempts.items():
         rows = engine_by_request.get(request_id, [])
-        if attempt.get("prefill_submit_mono_ns") is not None:
+        if attempt.get("prefill_complete_mono_ns") is not None:
             association["accepted_attempts"] += 1
             prefill = [row for row in rows if row["component"] == "prefill"]
             if prefill:
@@ -90,6 +90,12 @@ def validate_internal_data(
                     )
             else:
                 fail("routed_attempt_decode_engine_cardinality", request_id=request_id, count=len(decode_rows))
+
+    if association["routed_attempts"] and not tables["kv_transfers"]:
+        fail(
+            "kv_telemetry_missing_for_pd_run",
+            routed_attempts=association["routed_attempts"],
+        )
 
     iteration_totals = {
         (row["process_instance_id"], row["iteration_id"]): row
