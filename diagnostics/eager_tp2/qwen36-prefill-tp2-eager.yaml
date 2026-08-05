@@ -1,0 +1,128 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: qwen36-prefill-tp2-eager-diagnostic
+  namespace: infra-learning
+  labels:
+    app: qwen36-prefill-tp2-eager-diagnostic
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: qwen36-prefill-tp2-eager-diagnostic
+  template:
+    metadata:
+      labels:
+        app: qwen36-prefill-tp2-eager-diagnostic
+      annotations:
+        huawei.com/Ascend910: Ascend910-2,Ascend910-3
+        predicate-time: "1"
+    spec:
+      schedulerName: default-scheduler
+      nodeSelector:
+        kubernetes.io/arch: arm64
+        kubernetes.io/hostname: a3-server-00
+        node.kubernetes.io/npu.chip.name: Ascend910
+      containers:
+        - name: eager-tp2
+          image: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-20260730
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "--noprofile", "--norc", "-c"]
+          args: ["exec /opt/qwen36-eager/entrypoint.sh"]
+          env:
+            - name: MODEL_PATH
+              value: /models/Qwen3.6-27B-w8a8
+            - name: MODEL_NAME
+              value: qwen36-27b-w8a8-eager
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NO_PROXY
+              value: localhost,127.0.0.1,::1,.svc,.svc.cluster.local,.cluster.local,110.120.0.3,110.123.0.3,10.0.0.0/8
+          resources:
+            requests:
+              cpu: "64"
+              memory: 256Gi
+              huawei.com/Ascend910: "2"
+            limits:
+              cpu: "64"
+              memory: 256Gi
+              huawei.com/Ascend910: "2"
+          readinessProbe:
+            exec:
+              command:
+                - /bin/sh
+                - -c
+                - curl --noproxy '*' -fsS --max-time 2 http://127.0.0.1:13700/health >/dev/null
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 100
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: model
+              mountPath: /models/Qwen3.6-27B-w8a8
+              readOnly: true
+            - name: scripts
+              mountPath: /opt/qwen36-eager
+              readOnly: true
+            - name: state
+              mountPath: /var/run/qwen36-eager
+            - name: logs
+              mountPath: /var/log/qwen36-eager
+            - name: shm
+              mountPath: /dev/shm
+            - name: driver
+              mountPath: /usr/local/Ascend/driver
+              readOnly: true
+            - name: dcmi
+              mountPath: /usr/local/dcmi
+              readOnly: true
+            - name: npu-smi
+              mountPath: /usr/local/bin/npu-smi
+              readOnly: true
+            - name: hccn-tool
+              mountPath: /usr/local/Ascend/driver/tools/hccn_tool
+              readOnly: true
+            - name: hccn-conf
+              mountPath: /etc/hccn.conf
+              readOnly: true
+      volumes:
+        - name: model
+          hostPath:
+            path: /home/admin/models/Qwen3.6-27B-w8a8
+            type: Directory
+        - name: scripts
+          configMap:
+            name: qwen36-eager-tp2-diagnostic-scripts
+            defaultMode: 365
+        - name: state
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+        - name: driver
+          hostPath:
+            path: /usr/local/Ascend/driver
+        - name: dcmi
+          hostPath:
+            path: /usr/local/dcmi
+        - name: npu-smi
+          hostPath:
+            path: /usr/local/bin/npu-smi
+            type: File
+        - name: hccn-tool
+          hostPath:
+            path: /usr/local/Ascend/driver/tools/hccn_tool
+            type: File
+        - name: hccn-conf
+          hostPath:
+            path: /etc/hccn.conf
+            type: File

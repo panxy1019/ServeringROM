@@ -1,0 +1,67 @@
+# Credentials and local client configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*
+*secret*.yaml
+*secret*.yml
+.docker/
+.kube/
+
+# Model weights and large binary artifacts
+models/
+checkpoints/
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.onnx
+*.gguf
+*.ckpt
+*.npz
+*.npy
+*.7z
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+# Experiment output and raw telemetry
+results/
+raw/
+**/raw/
+diagnostics/runs/
+
+# Build and language caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+.cache/
+
+# Runtime output
+*.log
+*.pid
+*.sock
+core
+core.*
+*.core
+hs_err_pid*
+
+# Editor and operating-system files
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+

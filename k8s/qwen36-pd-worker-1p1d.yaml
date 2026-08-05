@@ -1,0 +1,150 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ray-vllm-pd-worker-qwen36-27b-1p1d
+  namespace: infra-learning
+  labels:
+    app: ray-vllm-pd-worker-qwen36-27b-1p1d
+spec:
+  replicas: 0
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ray-vllm-pd-worker-qwen36-27b-1p1d
+  template:
+    metadata:
+      labels:
+        app: ray-vllm-pd-worker-qwen36-27b-1p1d
+      annotations:
+        huawei.com/Ascend910: Ascend910-2,Ascend910-3,Ascend910-4,Ascend910-5
+        predicate-time: "1"
+    spec:
+      schedulerName: default-scheduler
+      nodeSelector:
+        kubernetes.io/arch: arm64
+        kubernetes.io/hostname: a3-server-00
+        node.kubernetes.io/npu.chip.name: Ascend910
+      containers:
+        - name: pd-worker
+          image: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-20260730
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/bash", "-lc", "--"]
+          args: ["exec /opt/qwen36-pd/pd-worker-entrypoint.sh"]
+          env:
+            - name: PHYSICAL_IDS
+              value: 2,3,4,5
+            - name: PD_STAGE
+              value: 1p1d
+            - name: MODEL_PATH
+              value: /models/Qwen3.6-27B-w8a8
+            - name: MODEL_NAME
+              value: qwen36-27b-w8a8
+            - name: RAY_ADDRESS
+              value: ray-vllm-lab-head.infra-learning.svc.cluster.local:6379
+            - name: POD_IP
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: NO_PROXY
+              value: localhost,127.0.0.1,::1,.svc,.svc.cluster.local,.cluster.local,110.120.0.3,110.123.0.3,10.0.0.0/8
+          resources:
+            requests:
+              cpu: "64"
+              memory: 256Gi
+              huawei.com/Ascend910: "4"
+            limits:
+              cpu: "64"
+              memory: 256Gi
+              huawei.com/Ascend910: "4"
+          readinessProbe:
+            exec:
+              command: ["/bin/sh", "-c", "test -f /var/run/qwen36-pd/READY && curl --noproxy '*' -fsS http://127.0.0.1:8080/openapi.json >/dev/null"]
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 120
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: model
+              mountPath: /models/Qwen3.6-27B-w8a8
+              readOnly: true
+            - name: scripts
+              mountPath: /opt/qwen36-pd
+              readOnly: true
+            - name: state
+              mountPath: /var/run/qwen36-pd
+            - name: logs
+              mountPath: /var/log/qwen36-pd
+            - name: shm
+              mountPath: /dev/shm
+            - name: driver
+              mountPath: /usr/local/Ascend/driver
+              readOnly: true
+            - name: dcmi
+              mountPath: /usr/local/dcmi
+              readOnly: true
+            - name: npu-smi
+              mountPath: /usr/local/bin/npu-smi
+              readOnly: true
+            - name: hccn-tool
+              mountPath: /usr/local/Ascend/driver/tools/hccn_tool
+              readOnly: true
+            - name: hccn-conf
+              mountPath: /etc/hccn.conf
+              readOnly: true
+      volumes:
+        - name: model
+          hostPath:
+            path: /home/admin/models/Qwen3.6-27B-w8a8
+            type: Directory
+        - name: scripts
+          configMap:
+            name: qwen36-pd-worker-scripts
+            defaultMode: 365
+        - name: state
+          emptyDir: {}
+        - name: logs
+          emptyDir: {}
+        - name: shm
+          emptyDir:
+            medium: Memory
+            sizeLimit: 64Gi
+        - name: driver
+          hostPath:
+            path: /usr/local/Ascend/driver
+        - name: dcmi
+          hostPath:
+            path: /usr/local/dcmi
+        - name: npu-smi
+          hostPath:
+            path: /usr/local/bin/npu-smi
+            type: File
+        - name: hccn-tool
+          hostPath:
+            path: /usr/local/Ascend/driver/tools/hccn_tool
+            type: File
+        - name: hccn-conf
+          hostPath:
+            path: /etc/hccn.conf
+            type: File
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: qwen36-pd-1p1d
+  namespace: infra-learning
+spec:
+  selector:
+    app: ray-vllm-pd-worker-qwen36-27b-1p1d
+  ports:
+    - name: openai
+      port: 8080
+      targetPort: 8080
+    - name: prefill
+      port: 13700
+      targetPort: 13700
+    - name: decode-a
+      port: 13701
+      targetPort: 13701
