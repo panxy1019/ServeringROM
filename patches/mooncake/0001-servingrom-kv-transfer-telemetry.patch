@@ -17,11 +17,10 @@
  logger = init_logger(__name__)
  
  try:
-@@ -780,6 +783,8 @@
+@@ -780,6 +783,7 @@
          self.engine_id: EngineId = engine_id
          self.tp_rank = get_tensor_model_parallel_rank()
          self.tp_size = get_tensor_model_parallel_world_size()
-+        self._servingrom = get_internal_telemetry("mooncake")
 +        self._servingrom_transfer_facts: dict[str, dict[str, int]] = {}
          self.num_blocks = 0
          self.block_len_per_layer: list[int] = []
@@ -30,7 +29,7 @@
                  )
              send_meta = self.reqs_need_send[transfer_id]
              pending_reqs[d_req_id] = send_meta
-+            self._servingrom.emit(
++            get_internal_telemetry("mooncake").emit(
 +                "kv_transfer_enqueued",
 +                {
 +                    "transfer_role": "send",
@@ -63,7 +62,7 @@
 +                session_id_hash = hashlib.sha256(remote_session.encode()).hexdigest()
 +                for d_req_id, _ in ok_ready_reqs:
 +                    fact = self._servingrom_transfer_facts.get(d_req_id, {})
-+                    self._servingrom.emit(
++                    get_internal_telemetry("mooncake").emit(
 +                        "kv_transfer_started",
 +                        {
 +                            "transfer_role": "send",
@@ -98,7 +97,7 @@
 +                    event_type = (
 +                        "kv_transfer_completed" if ret_value == 0 else "kv_transfer_failed"
 +                    )
-+                    self._servingrom.emit(
++                    get_internal_telemetry("mooncake").emit(
 +                        event_type,
 +                        {
 +                            "transfer_role": "send",
@@ -157,7 +156,7 @@
 +        receive_started_wall_ns = time.time_ns()
 +        receive_started_mono_ns = time.monotonic_ns()
 +        for req_id in req_ids:
-+            self._servingrom.emit(
++            get_internal_telemetry("mooncake").emit(
 +                "kv_transfer_started",
 +                {
 +                    "transfer_role": "receive",
@@ -185,7 +184,7 @@
                          )
                          self.xfer_stats.record_failed_recv()
 +                        for req_id in req_ids:
-+                            self._servingrom.emit(
++                            get_internal_telemetry("mooncake").emit(
 +                                "kv_transfer_failed",
 +                                {
 +                                    "transfer_role": "receive",
@@ -209,7 +208,7 @@
 +                        completed_wall_ns = time.time_ns()
 +                        ok_reqs = set(response.ok_reqs or ())
 +                        for req_id in ok_reqs:
-+                            self._servingrom.emit(
++                            get_internal_telemetry("mooncake").emit(
 +                                "kv_transfer_completed",
 +                                {
 +                                    "transfer_role": "receive",
