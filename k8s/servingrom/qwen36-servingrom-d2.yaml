@@ -35,7 +35,7 @@ spec:
         node.kubernetes.io/npu.chip.name: Ascend910
       containers:
         - name: pd-worker
-          image: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-servingrom-tel-v3
+          image: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-servingrom-tel-v4
           imagePullPolicy: Always
           command: ["/bin/bash", "-lc", "--"]
           args: ["exec /opt/servingrom/scripts/pd-worker-entrypoint-instrumented.sh"]
