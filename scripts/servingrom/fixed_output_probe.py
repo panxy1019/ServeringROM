@@ -7,7 +7,7 @@ import json
 import time
 from pathlib import Path
 
-import httpx
+import requests
 
 
 def main() -> int:
@@ -25,11 +25,13 @@ def main() -> int:
         "stream": False,
     }
     started = time.perf_counter()
-    with httpx.Client(timeout=600, trust_env=False) as client:
+    with requests.Session() as client:
+        client.trust_env = False
         response = client.post(
             f"{args.endpoint.rstrip('/')}/v1/chat/completions",
             headers={"X-Request-Id": args.request_id},
             json=payload,
+            timeout=600,
         )
     elapsed = time.perf_counter() - started
     response.raise_for_status()

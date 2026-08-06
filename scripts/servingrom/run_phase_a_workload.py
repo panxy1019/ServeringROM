@@ -10,7 +10,7 @@ import time
 from pathlib import Path
 from typing import Any
 
-import httpx
+import aiohttp
 
 
 def percentile(values: list[float], q: float) -> float | None:
@@ -21,7 +21,7 @@ def percentile(values: list[float], q: float) -> float | None:
 
 
 async def request(
-    client: httpx.AsyncClient,
+    client: aiohttp.ClientSession,
     endpoint: str,
     prompt: str,
     max_tokens: int,
@@ -42,14 +42,13 @@ async def request(
     first_chunk = None
     chunks: list[bytes] = []
     status = None
-    async with client.stream(
-        "POST",
+    async with client.post(
         f"{endpoint.rstrip('/')}/v1/chat/completions",
         headers={"X-Request-Id": request_id},
         json=payload,
     ) as response:
-        status = response.status_code
-        async for chunk in response.aiter_bytes():
+        status = response.status
+        async for chunk in response.content.iter_any():
             if first_chunk is None:
                 first_chunk = time.perf_counter()
             chunks.append(chunk)
@@ -69,9 +68,9 @@ async def request(
 
 
 async def run(args) -> dict[str, Any]:
-    timeout = httpx.Timeout(connect=10, read=600, write=60, pool=60)
-    limits = httpx.Limits(max_connections=32, max_keepalive_connections=16)
-    async with httpx.AsyncClient(timeout=timeout, limits=limits, trust_env=False) as client:
+    timeout = aiohttp.ClientTimeout(total=600, connect=10, sock_read=600)
+    connector = aiohttp.TCPConnector(limit=32, limit_per_host=32)
+    async with aiohttp.ClientSession(timeout=timeout, connector=connector, trust_env=False) as client:
         cases = []
         cases.append(await request(client, args.endpoint, "请用一句话解释圆的半径。", 8, "phase-a-short"))
         cases.append(
