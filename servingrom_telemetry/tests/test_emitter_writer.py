@@ -129,6 +129,23 @@ class EmitterWriterTest(TestCase):
                 )
             self.assertEqual(sequences, list(range(1, 8_001)))
 
+    def test_periodic_summary_exists_without_process_close(self) -> None:
+        with TemporaryDirectory() as directory:
+            emitter = AsyncTelemetryEmitter(config(directory))
+            self.assertTrue(emitter.emit("checkpoint", {"value": 1}))
+            deadline = time.monotonic() + 2.0
+            summaries = []
+            while time.monotonic() < deadline:
+                summaries = list(Path(directory).glob("*.summary.json"))
+                if summaries:
+                    break
+                time.sleep(0.05)
+            self.assertTrue(summaries)
+            summary = json.loads(summaries[0].read_text(encoding="utf-8"))
+            self.assertEqual(summary["events_written"], summary["events_enqueued"])
+            self.assertEqual(summary["events_written"], 1)
+            self.assertTrue(emitter.close(5))
+
     def test_queue_full_drops_without_blocking(self) -> None:
         with TemporaryDirectory() as directory:
             BlockingSink.started.clear()

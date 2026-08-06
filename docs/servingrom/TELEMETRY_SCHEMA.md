@@ -149,6 +149,11 @@ results/<experiment_id>/<run_id>/
 4. 原子生成 summary JSON；
 5. writer 线程退出。
 
+此外，后台 writer 每 5 秒原子更新一次 process summary checkpoint。这样在 vLLM
+TP worker 未执行 Python `atexit` 的终止路径中，仍能保留最近一个稳定的
+`events_written/events_enqueued/drop/error` 计数。checkpoint 只在 writer 线程执行，
+不会给业务 `emit()` 增加文件 I/O 或等待。
+
 超时或 flush 失败返回 `False`。重复 close 是幂等的。
 
 ## 错误隔离与计数

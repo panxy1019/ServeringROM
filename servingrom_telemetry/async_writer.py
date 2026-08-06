@@ -32,6 +32,7 @@ class AsyncJSONLWriter:
         self._sink = sink
         self._batch_size = batch_size
         self._flush_interval_s = flush_interval_ms / 1000.0
+        self._summary_interval_s = max(1.0, self._flush_interval_s * 20)
         self._output_dir = Path(output_dir)
         self._component = component.replace("/", "_")
         self._process_instance_id = process_instance_id
@@ -166,6 +167,7 @@ class AsyncJSONLWriter:
 
     def _run(self) -> None:
         last_flush = time.monotonic()
+        last_summary = last_flush
         try:
             while not self._stop_requested.is_set() or not self._queue.empty():
                 batch: list[dict[str, Any]] = []
@@ -190,6 +192,9 @@ class AsyncJSONLWriter:
                 if now - last_flush >= self._flush_interval_s:
                     self._flush_ok = self._flush() and self._flush_ok
                     last_flush = now
+                if now - last_summary >= self._summary_interval_s:
+                    self._write_summary()
+                    last_summary = now
                 self._ack_flush_if_ready()
             self._flush_ok = self._flush() and self._flush_ok
             with self._condition:
