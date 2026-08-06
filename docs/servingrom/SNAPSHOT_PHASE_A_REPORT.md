@@ -126,7 +126,7 @@ next_state shape:       [942, 1804]
 | snapshot manifest mismatch | 0 |
 | Pod restart | 0 |
 
-Seal 生成 76 个文件的全 run SHA256 manifest。`metadata/run_status.json` 明确记录 `SEALED` 和 `eligible_for_training=true`。
+Seal 生成 77 个文件的全 run SHA256 manifest。`metadata/run_status.json` 明确记录 `SEALED` 和 `eligible_for_training=true`。
 
 ## 7. 产物入口
 
