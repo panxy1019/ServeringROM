@@ -98,7 +98,15 @@ class Campaign:
         if self.args.dry_run:
             print("DRY-RUN", shlex.join(command), flush=True)
             return subprocess.CompletedProcess(command, 0, "", "")
-        return subprocess.run(command, check=check, text=True, capture_output=capture, timeout=timeout)
+        try:
+            return subprocess.run(command, check=check, text=True, capture_output=capture, timeout=timeout)
+        except subprocess.CalledProcessError as exc:
+            print(f"COMMAND FAILED: {shlex.join(command)}", flush=True)
+            if exc.stdout:
+                print(exc.stdout, flush=True)
+            if exc.stderr:
+                print(exc.stderr, flush=True)
+            raise
 
     def kubectl(self, *parts: str, namespace: str | None = None, **kwargs: Any) -> subprocess.CompletedProcess[str]:
         command = ["kubectl"]
@@ -250,7 +258,9 @@ class Campaign:
             "--timeout", "120",
             timeout=180,
         )
-        return json.loads(result.stdout) if result.stdout else {}
+        value = json.loads(result.stdout) if result.stdout else {}
+        print(f"RUN CONTROL {action}: run_id={run_id} ack={value.get('acknowledged', len(value.get('acks', [])))}", flush=True)
+        return value
 
     def ray_exec(self, *command: str, timeout: float | None = None) -> subprocess.CompletedProcess[str]:
         return self.kubectl("exec", self.ray_pod, "--", *command, namespace=self.ray_namespace, timeout=timeout)
@@ -264,6 +274,7 @@ class Campaign:
             run_id = f"sr-v1-capacity-{slug(workload)}-{utc_stamp()}"
             calibration_runs.append(run_id)
             self.run_control("activate", run_id)
+            print(f"CALIBRATION START: workload={workload} run_id={run_id}", flush=True)
             try:
                 candidates = self.config["calibration"][f"{workload}_candidates"]
                 output = f"/tmp/{run_id}-{workload}.json"
@@ -282,6 +293,7 @@ class Campaign:
                 ]
                 self.ray_exec(*command, timeout=7200)
                 reports[workload] = json.loads(self.ray_exec("cat", output).stdout)
+                print(f"CALIBRATION SEALED: workload={workload} lambda_stable={reports[workload]['lambda_stable']}", flush=True)
             finally:
                 self.run_control("deactivate", run_id)
         result = {
@@ -393,6 +405,7 @@ class Campaign:
         row["status"] = "RUNNING"
         row["run_id"] = run_id
         row["attempts"].append({"run_id": run_id, "started_at": utc_stamp(), "status": "RUNNING"})
+        print(f"FORMAL RUN START: plan_id={row['plan_id']} run_id={run_id}", flush=True)
         self.run_control("activate", run_id)
         output = f"/tmp/{run_id}-workload.json"
         try:
@@ -413,6 +426,7 @@ class Campaign:
             "sealed_at": utc_stamp(),
         })
         row["attempts"][-1].update({"status": "SEALED", "finished_at": utc_stamp()})
+        print(f"FORMAL RUN SEALED: plan_id={row['plan_id']} run_id={run_id}", flush=True)
 
     def git_commit(self) -> str:
         result = self.run(["git", "rev-parse", "HEAD"], check=False)
