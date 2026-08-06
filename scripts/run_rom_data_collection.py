@@ -193,6 +193,19 @@ class Campaign:
         self.shell(command)
 
     def prepare_warm_pod(self) -> None:
+        if not self.args.dry_run:
+            ready = self.kubectl(
+                "get", "deployment", self.experiment,
+                "-o", "jsonpath={.status.readyReplicas}", check=False,
+            ).stdout.strip()
+            if ready == "1":
+                self.pod = self.kubectl(
+                    "get", "pod", "-l", f"app={self.experiment}",
+                    "-o", "jsonpath={.items[0].metadata.name}",
+                ).stdout.strip()
+                self.verify_warm_pod()
+                self.sync_source_to_ray()
+                return
         self.create_configmaps()
         self.kubectl("apply", "-f", str(self.root / "k8s/servingrom/qwen36-servingrom-d2.yaml"))
         self.kubectl("apply", "-f", str(self.root / "k8s/servingrom/rom-results-helper.yaml"))
@@ -209,6 +222,11 @@ class Campaign:
         ).stdout.strip()
         if not self.pod:
             raise RuntimeError("experiment Pod was not found after rollout")
+        self.verify_warm_pod()
+        self.sync_source_to_ray()
+
+    def verify_warm_pod(self) -> None:
+        assert self.pod
         restart = self.kubectl("get", "pod", self.pod, "-o", "jsonpath={.status.containerStatuses[0].restartCount}").stdout.strip()
         image_id = self.kubectl("get", "pod", self.pod, "-o", "jsonpath={.status.containerStatuses[0].imageID}").stdout.strip()
         if restart != "0":
@@ -221,13 +239,15 @@ class Campaign:
         mapping = self.kubectl("exec", self.pod, "--", "cat", "/var/run/qwen36-pd/service-device-map.txt").stdout
         if not all(name in mapping for name in ("prefill=", "decode_a=", "decode_b=")):
             raise RuntimeError(f"incomplete NPU mapping:\n{mapping}")
-        self.sync_source_to_ray()
 
     def run_control(self, action: str, run_id: str) -> dict[str, Any]:
         assert self.pod
         result = self.kubectl(
             "exec", self.pod, "--", "python3", "/opt/qwen36-pd/servingrom_run_control.py",
-            action, "--run-id", run_id, "--timeout", "120",
+            action, "--run-id", run_id,
+            "--experiment-id", self.experiment_id,
+            "--config-id", self.config["config_id"],
+            "--timeout", "120",
             timeout=180,
         )
         return json.loads(result.stdout) if result.stdout else {}
