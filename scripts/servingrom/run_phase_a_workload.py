@@ -77,7 +77,7 @@ async def run(args) -> dict[str, Any]:
             await request(
                 client,
                 args.endpoint,
-                ("这是用于长输入 Prefill 验证的教材段落。" * 700),
+                ("这是用于长输入 Prefill 验证的教材段落。" * 260),
                 8,
                 "phase-a-long",
             )
@@ -111,7 +111,7 @@ async def run(args) -> dict[str, Any]:
             await request(
                 client,
                 args.endpoint,
-                "长上下文 Mooncake 传输验证。" * 1500,
+                "长上下文 Mooncake 传输验证。" * 500,
                 8,
                 "phase-a-mooncake-long",
             )

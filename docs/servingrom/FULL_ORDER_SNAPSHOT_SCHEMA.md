@@ -1,32 +1,76 @@
 # ServingROM Full-order Snapshot Schema
 
-## 时间与窗口
+## 1. 样本语义
 
-快照使用统一的墙钟 `ts_wall_ns`，固定周期为 200ms，窗口严格采用半开区间 `[t_k, t_{k+1})`。持续时间只由各进程本地单调时钟计算，绝不跨进程相减。Builder 以事件重放构造状态，不按 JSONL 文件顺序或采样时间分组。
+每条训练样本是固定 200 ms 半开窗口：
 
-窗口原始产物为 `derived/snapshot_windows.parquet`；质量与覆盖信息为 `derived/snapshot_quality.parquet`。任何缺少所需 engine component 观测的窗口均标为无效，绝不插值。
+```text
+(x_k, mu, d_k, y_k, x_{k+1}),  window=[t_k,t_{k+1})
+```
 
-## 数组产物
+- `x_k`：`t_k` 时刻仍在系统中的请求库存；由事件状态机回放得到。
+- `mu`：整个 run 固定的引擎、拓扑和 SLO 配置，不伪装成控制量。
+- `d_k`：窗口内首次外部到达；retry/recompute 不重复计为外部扰动。
+- `y_k`：窗口内完成、token、拒绝、取消、KV 完成及 scheduler 工作量。
+- `x_{k+1}`：同一状态函数在 `t_{k+1}` 的值，不通过差分近似。
 
-- `full_state.npy`：每窗口的请求阶段库存、Prefill/Decode/KV 状态、输入长度和 context 长度直方图。
-- `disturbance.npy`：窗口外生到达、接纳、拒绝、Prefill 调度 token 和 scheduler 观测数。
-- `output.npy`：输出 token、发射事件和终态计数。
-- `next_state.npy`：`full_state[k+1]`，长度为 `N-1`。
-- `static_config.json`：固定的 `mu`；无法观测的字段显式为 `null`。
+跨进程排序使用 UTC `ts_wall_ns`；单进程 duration 只使用 monotonic clock。边界事件恰好发生在 `t_{k+1}` 时归入下一窗口。
 
-`request_index.json` 仅将稳定 request id 映射到矩阵索引，不保存 prompt 或生成文本。`bin_schema.yaml` 固化高维直方图边界，不能在同一 config_id 下悄悄变化。
+## 2. 请求状态机
 
-## 请求状态机
+成功路径严格互斥：
 
-`ARRIVED -> ADMITTED -> PREFILL_WAITING -> PREFILL_RUNNING -> HANDOFF_WAITING -> KV_QUEUED -> KV_TRANSFERRING -> KV_READY -> DECODE_WAITING -> DECODE_RUNNING -> terminal`。
+```text
+ADMITTED -> PREFILL_WAITING -> PREFILL_RUNNING
+ -> HANDOFF_WAITING -> KV_QUEUED -> KV_TRANSFERRING
+ -> KV_READY -> DECODE_WAITING -> DECODE_RUNNING
+ -> COMPLETED/CANCELLED/FAILED
+```
 
-拒绝路径为 `ARRIVED -> REJECTED`。KV 子状态由 rank 聚合后的 request 级 Parquet 精确定义：有 enqueue 无 start 为 `KV_QUEUED`；有 start 无全部完成为 `KV_TRANSFERRING`；全部预期 TP rank 成功且 `kv_ready_wall_ns` 非空为 `KV_READY`。缺 rank、失败或时间不一致不伪造 ready，而会进入质量违规。
+拒绝路径为 `ARRIVED -> REJECTED`，不进入 active inventory。Prefill/Decode 的首次 schedule 来自真实 `scheduler_membership`；KV ready 使用 TP rank 聚合后的最后一个 complete。一个 request 在任意边界只能有一个主状态。
 
-## 数据语义
+## 3. 状态维度
 
-- `mu`：一次 run 内固定配置，如 token budget、chunk size、graph mode、TP、KV block 参数。
-- `d_k`：外部到达、输入长度、预期输出长度、取消与拒绝。
-- `x_k`：队列、阶段库存、KV 和 scheduler 内部状态。
-- `y_k`：实际输出 token 和终态。
+`full_state.npy` 本轮为 1804 维。每一维在 `state_index.json` 中记录名称、block、worker、quantity、unit、bin 上下界和解释。
 
-本模块没有 `u_k`，也不写入任何 actuator 或控制命令。
+主要 block：
+
+- 标量库存：active、Prefill、handoff、KV、D1/D2 waiting/running、预计剩余 token 和路由不平衡。
+- Prefill waiting：input length × waiting age 的 request count 和 token mass。
+- TTFT slack：input length × slack 的 count 和 token mass。
+- Prefill running：input length × progress 的 count 和 remaining token mass。
+- Mooncake：D1/D2 各自 handoff/queue/inflight/ready-wait 的 age 分布和 bytes。
+- Decode：D1/D2 各自 context × TPOT slack、context × generation progress、remaining output 与 context mass。
+- 尚无首 token 的 Decode request 使用独立 `first_token_pending`，不伪造 previous-token 时间。
+
+当前没有无扰 per-request free KV block 和硬件 DMA progress；字段在 `static_config.json.unavailable_fields` 声明，不以 0 冒充观测值。KV inflight bytes 在 complete 前保持实际总 bytes，complete 时归零，不做线性传输进度假设。
+
+## 4. 扰动与输出
+
+`disturbance.npy` 为 31 维，包括到达/接纳/拒绝、prompt/output token mass、stream 类型和输入/输出长度直方图。
+
+`output.npy` 为 19 维，包括完成与 goodput、TTFT/TPOT 违规和求和、拒绝/取消/error、D1/D2 emitted token、KV 完成量及 Prefill/Decode scheduled token。
+
+Goodput 固定定义为：请求完成，且 Proxy TTFT 不超过 run 默认 2000 ms，engine token 平均 TPOT 不超过 100 ms。没有请求级 SLO 时来源记为 `run_default`。
+
+## 5. 输出目录
+
+```text
+derived/snapshots/
+├── full_state.npy
+├── disturbance.npy
+├── output.npy
+├── static_config.npy
+├── next_state.npy
+├── window_table.parquet
+├── snapshot_quality.parquet
+├── request_state_inventory.parquet
+├── state_index.json
+├── disturbance_index.json
+├── output_index.json
+├── static_config.json
+├── bin_schema.yaml
+└── snapshot_manifest.json
+```
+
+`snapshot_manifest.json` 固定所有标准输入 Parquet 与快照输出的 SHA256。后处理不得覆盖 raw。
