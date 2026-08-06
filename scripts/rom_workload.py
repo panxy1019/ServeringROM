@@ -483,6 +483,7 @@ async def run_calibration(args: argparse.Namespace, workload: dict[str, Any]) ->
         "schema_version": "servingrom.capacity_calibration.v1",
         "workload": workload["name"],
         "lambda_stable": max(stable_rates),
+        "right_censored": bool(results[-1]["stable"]),
         "candidates": results,
     }
 

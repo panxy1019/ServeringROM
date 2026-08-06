@@ -300,6 +300,11 @@ class Campaign:
                 ]
                 self.ray_exec(*command, timeout=7200)
                 reports[workload] = json.loads(self.ray_exec("cat", output).stdout)
+                if reports[workload].get("right_censored"):
+                    raise RuntimeError(
+                        f"capacity search for {workload} is right-censored at "
+                        f"{reports[workload]['lambda_stable']}; extend candidates"
+                    )
                 print(f"CALIBRATION SEALED: workload={workload} lambda_stable={reports[workload]['lambda_stable']}", flush=True)
             finally:
                 self.run_control("deactivate", run_id)

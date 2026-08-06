@@ -34,8 +34,8 @@
     "error_rate_max": 0.0,
     "backlog_slope_max_per_second": 0.05,
     "balanced_candidates": [0.25, 0.5, 0.75, 1.0, 1.5, 2.0],
-    "long-prefill_candidates": [0.05, 0.1, 0.15, 0.2, 0.3, 0.45],
-    "mixed-bimodal_candidates": [0.1, 0.2, 0.3, 0.45, 0.65, 0.9]
+    "long-prefill_candidates": [0.05, 0.1, 0.15, 0.2, 0.3, 0.45, 0.7, 1.0, 1.4],
+    "mixed-bimodal_candidates": [0.1, 0.2, 0.3, 0.45, 0.65, 0.9, 1.2, 1.6]
   },
   "frozen": {
     "state_index_sha256": "3ddad259afaf92b6dad1d36c64541f855e64d67ba3f2418117c1cfd34f233b71",
