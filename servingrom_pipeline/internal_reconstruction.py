@@ -134,6 +134,14 @@ def reconstruct_internal_tables(
         elif event_type == "prefill_accounting_probe":
             row = _base(event, attempts)
             row.update(payload)
+            for field in (
+                "probe_phase", "scheduled_tokens", "computed_tokens_before",
+                "computed_tokens_after", "input_tokens", "output_tokens_after",
+                "connector_computed_tokens", "connector_external_tokens",
+                "final_computed_tokens", "handoff_token_count",
+                "observation_source",
+            ):
+                row.setdefault(field, None)
             tables["prefill_accounting"].append(row)
         elif event_type == "device_metric":
             row = _base(event, attempts)
@@ -306,6 +314,14 @@ def reconstruct_internal_tables(
                 "observed_ranks_json": _json(observed_ranks),
                 "completed_ranks_json": _json(completed_ranks),
                 "missing_ranks_json": _json(missing_ranks),
+                "enqueue_wall_ns": min(
+                    (row["enqueue_wall_ns"] for row in ranks if row.get("enqueue_wall_ns") is not None),
+                    default=None,
+                ),
+                "enqueue_mono_ns": min(
+                    (row["enqueue_mono_ns"] for row in ranks if row.get("enqueue_mono_ns") is not None),
+                    default=None,
+                ),
                 "first_start_mono_ns": first_start,
                 "last_complete_mono_ns": last_complete,
                 "kv_ready_mono_ns": last_complete if not missing_ranks else None,

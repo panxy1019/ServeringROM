@@ -57,6 +57,7 @@ class InternalPipelineTest(TestCase):
             ),
             self.event(5, "engine_request_terminal", {"finish_reason": "stop"}),
             self.event(6, "prefill_accounting_probe", {"probe_phase": "iteration", "computed_tokens_before": 0, "computed_tokens_after": 8, "scheduled_tokens": 8}),
+            self.event(7, "prefill_accounting_probe", {"probe_phase": "request_terminal", "final_computed_tokens": 8, "handoff_token_count": 0}),
         ]
         dataset = InternalEventDataset(
             events=events,

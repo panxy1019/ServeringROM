@@ -169,26 +169,54 @@ def validate_internal_data(
     output_by_request: dict[tuple[str, str], int] = Counter()
     for row in tables["token_emissions"]:
         output_by_request[(row["component"], row["request_id"])] += int(row["new_token_count"])
-    accounting_by_request: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    accounting_by_request: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in tables.get("prefill_accounting", []):
-        accounting_by_request[row.get("request_id")].append(row)
+        accounting_by_request[(row.get("component"), row.get("request_id"))].append(row)
     for request_id, rows in engine_by_request.items():
         for row in rows:
             if row["component"] == "prefill":
                 scheduled = membership_by_request[("prefill", request_id)]
                 prompt = row.get("prompt_tokens")
-                probes = accounting_by_request.get(request_id, [])
+                # The physical request ID intentionally spans Prefill and Decode.
+                # Accounting counters are engine-local, so conservation must not
+                # merge probes from the two scheduler instances.
+                probes = accounting_by_request.get(("prefill", request_id), [])
                 initial = row.get("initial_computed_tokens")
-                observed_after = [item.get("computed_tokens_after") for item in probes if item.get("computed_tokens_after") is not None]
-                final = max(observed_after) if observed_after else None
-                handoff = (int(prompt) - int(final)) if prompt is not None and final is not None else None
-                exact = initial is not None and final is not None and handoff is not None and int(final) - int(initial) == scheduled and prompt == int(final) + int(handoff)
+                iterations = [item for item in probes if item.get("probe_phase") == "iteration"]
+                terminal_probe = next(
+                    (item for item in probes if item.get("probe_phase") == "request_terminal"),
+                    None,
+                )
+                observed_after = [
+                    item.get("computed_tokens_after")
+                    for item in iterations
+                    if item.get("computed_tokens_after") is not None
+                ]
+                observed_final = max(observed_after) if observed_after else None
+                final = terminal_probe.get("final_computed_tokens") if terminal_probe else None
+                handoff = terminal_probe.get("handoff_token_count") if terminal_probe else None
+                iteration_exact = bool(iterations) and all(
+                    item.get("computed_tokens_before") is not None
+                    and item.get("scheduled_tokens") is not None
+                    and item.get("computed_tokens_after")
+                    == item.get("computed_tokens_before") + item.get("scheduled_tokens")
+                    for item in iterations
+                )
+                exact = (
+                    iteration_exact
+                    and initial is not None
+                    and final is not None
+                    and observed_final == final
+                    and handoff is not None
+                    and int(final) - int(initial) == scheduled
+                    and prompt == int(final) + int(handoff)
+                )
                 delta = scheduled - prompt if prompt is not None else None
                 classification = "exact" if exact else "accounting_probe_missing_or_mismatch"
                 if not exact:
                     fail("prefill_accounting_unproven", request_id=request_id)
                 prefill_reconciliation.append(
-                    {"request_id": request_id, "prompt_tokens": prompt, "scheduled_tokens": scheduled, "delta": delta, "initial_computed_tokens": initial, "final_computed_tokens": final, "handoff_token_count": handoff, "classification": classification}
+                    {"request_id": request_id, "prompt_tokens": prompt, "scheduled_tokens": scheduled, "delta": delta, "initial_computed_tokens": initial, "observed_final_computed_tokens": observed_final, "final_computed_tokens": final, "handoff_token_count": handoff, "iteration_exact": iteration_exact, "classification": classification}
                 )
             elif row["component"] in {"decode-0", "decode-1"}:
                 engine_tokens = output_by_request[(row["component"], request_id)]
