@@ -90,6 +90,7 @@ class Campaign:
         self.local_state = self.root / ".campaign" / self.config["dataset_id"]
         self.progress_path = self.local_state / "collection_progress.json"
         self.capacity_path = self.local_state / "capacity_summary.json"
+        self.capacity_checkpoint_path = self.local_state / "capacity_checkpoint.json"
         self.ray_source = f"/tmp/{self.config['dataset_id']}-source"
         self.ray_stage = f"/tmp/{self.config['dataset_id']}-stage"
         self.pod: str | None = None
@@ -275,37 +276,67 @@ class Campaign:
     def run_calibration(self) -> dict[str, Any]:
         if self.capacity_path.exists():
             return json.loads(self.capacity_path.read_text(encoding="utf-8"))
-        reports = {}
-        calibration_runs = []
+        checkpoint = (
+            json.loads(self.capacity_checkpoint_path.read_text(encoding="utf-8"))
+            if self.capacity_checkpoint_path.exists() else {"reports": {}, "run_ids": []}
+        )
+        reports = checkpoint["reports"]
+        calibration_runs = checkpoint["run_ids"]
         for workload in ("balanced", "long-prefill", "mixed-bimodal"):
+            if workload in reports:
+                continue
             run_id = f"sr-v1-capacity-{slug(workload)}-{utc_stamp()}"
             calibration_runs.append(run_id)
             self.run_control("activate", run_id)
             print(f"CALIBRATION START: workload={workload} run_id={run_id}", flush=True)
             try:
-                candidates = self.config["calibration"][f"{workload}_candidates"]
-                output = f"/tmp/{run_id}-{workload}.json"
-                command = [
-                    "python3", f"{self.ray_source}/scripts/rom_workload.py", "--mode", "calibration",
-                    "--workload-config", f"{self.ray_source}/configs/workloads/{workload}.yaml",
-                    "--endpoint", f"http://{self.config['experiment_service']}:8080",
-                    "--tokenize-endpoint", f"http://{self.config['experiment_service']}:13700",
-                    "--run-id", run_id, "--output", output, "--seed", "17",
-                    "--candidate-rates", ",".join(map(str, candidates)),
-                    "--measurement-seconds", str(self.config["calibration"]["duration_seconds"]),
-                    "--drain-timeout-seconds", str(self.config["drain_timeout_seconds"]),
-                    "--reject-rate-max", str(self.config["calibration"]["reject_rate_max"]),
-                    "--error-rate-max", str(self.config["calibration"]["error_rate_max"]),
-                    "--backlog-slope-max", str(self.config["calibration"]["backlog_slope_max_per_second"]),
-                ]
-                self.ray_exec(*command, timeout=7200)
-                reports[workload] = json.loads(self.ray_exec("cat", output).stdout)
-                if reports[workload].get("right_censored"):
-                    raise RuntimeError(
-                        f"capacity search for {workload} is right-censored at "
-                        f"{reports[workload]['lambda_stable']}; extend candidates"
-                    )
+                candidates = list(self.config["calibration"][f"{workload}_candidates"])
+                baseline = 0.0
+                combined_candidates = []
+                rounds = []
+                for round_index in range(8):
+                    output = f"/tmp/{run_id}-{workload}-r{round_index}.json"
+                    command = [
+                        "python3", f"{self.ray_source}/scripts/rom_workload.py", "--mode", "calibration",
+                        "--workload-config", f"{self.ray_source}/configs/workloads/{workload}.yaml",
+                        "--endpoint", f"http://{self.config['experiment_service']}:8080",
+                        "--tokenize-endpoint", f"http://{self.config['experiment_service']}:13700",
+                        "--run-id", run_id, "--output", output,
+                        "--seed", str(17 + round_index * 1000),
+                        "--candidate-rates", ",".join(map(str, candidates)),
+                        "--baseline-stable-rate", str(baseline),
+                        "--phase-prefix", f"cal-r{round_index}",
+                        "--measurement-seconds", str(self.config["calibration"]["duration_seconds"]),
+                        "--drain-timeout-seconds", str(self.config["drain_timeout_seconds"]),
+                        "--reject-rate-max", str(self.config["calibration"]["reject_rate_max"]),
+                        "--error-rate-max", str(self.config["calibration"]["error_rate_max"]),
+                        "--backlog-slope-max", str(self.config["calibration"]["backlog_slope_max_per_second"]),
+                    ]
+                    self.ray_exec(*command, timeout=7200)
+                    report = json.loads(self.ray_exec("cat", output).stdout)
+                    rounds.append(report)
+                    combined_candidates.extend(report["candidates"])
+                    baseline = float(report["lambda_stable"])
+                    if not report.get("right_censored"):
+                        break
+                    cap = float(self.config["calibration"]["hard_rate_caps"][workload])
+                    if baseline >= cap:
+                        raise RuntimeError(f"capacity search for {workload} remained stable at hard cap {cap}")
+                    candidates = sorted({min(cap, baseline * 1.5), min(cap, baseline * 2.0)})
+                    print(f"CALIBRATION EXTEND: workload={workload} baseline={baseline} candidates={candidates}", flush=True)
+                else:
+                    raise RuntimeError(f"capacity search for {workload} exceeded maximum rounds")
+                reports[workload] = {
+                    "schema_version": "servingrom.capacity_calibration.v1",
+                    "workload": workload, "lambda_stable": baseline,
+                    "right_censored": False, "candidates": combined_candidates,
+                    "rounds": rounds,
+                }
                 print(f"CALIBRATION SEALED: workload={workload} lambda_stable={reports[workload]['lambda_stable']}", flush=True)
+                atomic_json(
+                    self.capacity_checkpoint_path,
+                    {"reports": reports, "run_ids": calibration_runs, "updated_at": utc_stamp()},
+                )
             finally:
                 self.run_control("deactivate", run_id)
         result = {

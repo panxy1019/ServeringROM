@@ -414,7 +414,7 @@ async def run_calibration(args: argparse.Namespace, workload: dict[str, Any]) ->
                 client=client, endpoint=args.endpoint, prompt_bank=prompt_bank,
                 workload=workload, rate_function=rate_function,
                 duration=args.measurement_seconds, rng=rng, seed=args.seed,
-                run_id=args.run_id, phase=f"cal-{candidate_index}", tasks=tasks, start_index=0,
+                run_id=args.run_id, phase=f"{args.phase_prefix}-{candidate_index}", tasks=tasks, start_index=0,
             )
             segment_end_wall_ns = time.time_ns()
             await asyncio.gather(*tasks)
@@ -473,7 +473,9 @@ async def run_calibration(args: argparse.Namespace, workload: dict[str, Any]) ->
             }, ensure_ascii=False, sort_keys=True), flush=True)
             if not stable:
                 break
-    stable_rates = [row["candidate_rate"] for row in results if row["stable"]]
+    stable_rates = (
+        [args.baseline_stable_rate] if args.baseline_stable_rate > 0 else []
+    ) + [row["candidate_rate"] for row in results if row["stable"]]
     if not stable_rates:
         raise RuntimeError(
             f"no stable calibration point for {workload['name']}: "
@@ -500,6 +502,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--arrival-rate", type=float, default=0.0)
     parser.add_argument("--arrival-process", default="poisson")
     parser.add_argument("--candidate-rates", default="")
+    parser.add_argument("--baseline-stable-rate", type=float, default=0.0)
+    parser.add_argument("--phase-prefix", default="cal")
     parser.add_argument("--warmup-seconds", type=float, default=180)
     parser.add_argument("--measurement-seconds", type=float, default=480)
     parser.add_argument("--drain-timeout-seconds", type=float, default=1200)
