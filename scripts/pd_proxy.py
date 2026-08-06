@@ -196,6 +196,16 @@ class RequestTokenEstimator:
             tokens = self._tokenizer.apply_chat_template(
                 req_data["messages"], tokenize=True, add_generation_prompt=True
             )
+            if hasattr(tokens, "input_ids"):
+                tokens = tokens.input_ids
+            elif isinstance(tokens, dict):
+                tokens = tokens["input_ids"]
+            if hasattr(tokens, "ndim") and tokens.ndim > 1:
+                tokens = tokens[0]
+            elif isinstance(tokens, (list, tuple)) and tokens and isinstance(
+                tokens[0], (list, tuple)
+            ):
+                tokens = tokens[0]
             return len(tokens)
         prompt = req_data.get("prompt", "")
         if isinstance(prompt, list):

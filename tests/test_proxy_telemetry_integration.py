@@ -141,3 +141,15 @@ class ProxyTelemetryIntegrationTest(IsolatedAsyncioTestCase):
         self.assertEqual(runtime.calls[0][0], "begin_request")
         self.assertEqual(runtime.calls[-1][0], "finish_request")
         self.assertTrue(runtime.calls[-1][2]["release_prefill_kv"])
+
+    async def test_chat_token_count_uses_input_ids_not_batch_encoding_keys(self) -> None:
+        class Tokenizer:
+            def apply_chat_template(self, *args, **kwargs):
+                return {"input_ids": [[10, 11, 12, 13]], "attention_mask": [[1, 1, 1, 1]]}
+
+        estimator = pd_proxy.RequestTokenEstimator.__new__(pd_proxy.RequestTokenEstimator)
+        estimator._tokenizer = Tokenizer()
+        self.assertEqual(
+            estimator.request_tokens({"messages": [{"role": "user", "content": "x"}]}),
+            4,
+        )
