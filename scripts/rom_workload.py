@@ -302,16 +302,19 @@ def summarize(
     }
 
 
-def backlog_slope(health: list[dict[str, Any]]) -> float:
+def backlog_trend(health: list[dict[str, Any]]) -> tuple[float, float]:
     clean = [row for row in health if row.get("request_num") is not None]
     clean = clean[len(clean) // 2:]
     if len(clean) < 2:
-        return math.inf
+        return math.inf, math.inf
     x = [(row["ts_wall_ns"] - clean[0]["ts_wall_ns"]) / 1e9 for row in clean]
     y = [float(row["request_num"]) for row in clean]
     x_mean, y_mean = statistics.mean(x), statistics.mean(y)
     denominator = sum((value - x_mean) ** 2 for value in x)
-    return sum((a - x_mean) * (b - y_mean) for a, b in zip(x, y)) / denominator if denominator else 0.0
+    slope = sum((a - x_mean) * (b - y_mean) for a, b in zip(x, y)) / denominator if denominator else 0.0
+    edge = max(2, len(clean) // 5)
+    backlog_growth = statistics.mean(y[-edge:]) - statistics.mean(y[:edge])
+    return slope, backlog_growth
 
 
 async def run_formal(args: argparse.Namespace, workload: dict[str, Any]) -> dict[str, Any]:
@@ -408,15 +411,24 @@ async def run_calibration(args: argparse.Namespace, workload: dict[str, Any]) ->
             await monitor
             request_results = [task.result() for task in tasks]
             summary = summarize(request_results, health, None, None)
-            slope = backlog_slope(health)
+            slope, growth = backlog_trend(health)
             arrivals = max(summary["arrival_count"], 1)
+            accepted = summary["arrival_count"] - summary["rejected_count"]
+            completion_gap = abs(accepted - summary["success_count"])
             stable = (
                 drain["drained"]
                 and summary["rejected_count"] / arrivals <= args.reject_rate_max
                 and summary["error_count"] / arrivals <= args.error_rate_max
-                and slope <= args.backlog_slope_max
+                and completion_gap <= max(1, math.ceil(accepted * 0.01))
+                and (slope <= args.backlog_slope_max or growth <= 1.0)
             )
-            results.append({"candidate_rate": rate, "stable": stable, "backlog_slope_per_second": slope, "summary": summary, "drain": drain})
+            results.append({
+                "candidate_rate": rate, "stable": stable,
+                "backlog_slope_per_second": slope,
+                "backlog_edge_mean_growth": growth,
+                "accepted_completion_gap": completion_gap,
+                "summary": summary, "drain": drain,
+            })
             if not stable:
                 break
     stable_rates = [row["candidate_rate"] for row in results if row["stable"]]

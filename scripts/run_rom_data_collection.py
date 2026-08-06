@@ -132,6 +132,13 @@ class Campaign:
             if not frozen.get(name) or frozen[name] != value:
                 raise RuntimeError(f"frozen hash mismatch for {name}: expected={frozen.get(name)} actual={value}")
         actual["dataset_config_sha256"] = sha256(self.config_path)
+        for name, relative in (
+            ("workload_generator_sha256", "scripts/rom_workload.py"),
+            ("campaign_controller_sha256", "scripts/run_rom_data_collection.py"),
+            ("dataset_builder_sha256", "scripts/build_rom_dataset.py"),
+            ("snapshot_validation_sha256", "servingrom_pipeline/snapshot_validation.py"),
+        ):
+            actual[name] = sha256(self.root / relative)
         for workload in ("balanced", "long-prefill", "mixed-bimodal"):
             actual[f"workload_{workload}_sha256"] = sha256(self.root / "configs/workloads" / f"{workload}.yaml")
         return actual
