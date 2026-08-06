@@ -10,7 +10,7 @@ metadata:
     servingrom.openai/base-image-digest: sha256:15c3a3db3772807cc09d9ad37756cd973e3b078956b6a239375ec4ae23317133
     servingrom.openai/vllm-commit: 0decac0d96c42b49572498019f0a0e3600f50398
     servingrom.openai/vllm-ascend-commit: 5f6faa0cb8830f667266f3b8121cd1383606f2a1
-    servingrom.openai/image-tag: v0.22.1rc1-a3-ray248-servingrom-tel-v1
+    servingrom.openai/image-tag: v0.22.1rc1-a3-ray248-servingrom-kv-tel-v5
 spec:
   replicas: 0
   strategy:
@@ -35,7 +35,7 @@ spec:
         node.kubernetes.io/npu.chip.name: Ascend910
       containers:
         - name: pd-worker
-          image: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-servingrom-tel-v4
+          image: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-servingrom-kv-tel-v5
           imagePullPolicy: Always
           command: ["/bin/bash", "-lc", "--"]
           args: ["exec /opt/servingrom/scripts/pd-worker-entrypoint-instrumented.sh"]

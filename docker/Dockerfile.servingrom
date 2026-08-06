@@ -17,8 +17,7 @@ COPY tests/test_internal_patch_static.py /opt/servingrom/tests/test_internal_pat
 RUN set -eux; \
     test "$(git -C /vllm-workspace/vllm rev-parse HEAD)" = "${VLLM_COMMIT}"; \
     test "$(git -C /vllm-workspace/vllm-ascend rev-parse HEAD)" = "${VLLM_ASCEND_COMMIT}"; \
-    for patch in /opt/servingrom/patches/vllm/*.patch \
-                 /opt/servingrom/patches/mooncake/*.patch; do \
+    for patch in /opt/servingrom/patches/vllm/*.patch; do \
       git -C /vllm-workspace/vllm apply --check "$patch"; \
       git -C /vllm-workspace/vllm apply "$patch"; \
     done; \
@@ -32,6 +31,7 @@ RUN set -eux; \
       /vllm-workspace/vllm/vllm/v1/engine/core.py \
       /vllm-workspace/vllm/vllm/v1/core/sched/output.py \
       /vllm-workspace/vllm/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/mooncake_connector.py \
+      /vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py \
       /vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py; \
     chmod +x /opt/servingrom/scripts/*.py /opt/servingrom/scripts/*.sh; \
     python /opt/servingrom/tests/test_internal_patch_static.py; \

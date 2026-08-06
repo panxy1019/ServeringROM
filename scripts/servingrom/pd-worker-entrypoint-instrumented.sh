@@ -89,7 +89,15 @@ start_vllm() {
 stop_children() {
   set +e
   for file in "$STATE_DIR"/*.pid; do [[ -f "$file" ]] && kill "$(<"$file")" 2>/dev/null; done
-  sleep 3
+  local deadline=$((SECONDS + 20))
+  while (( SECONDS < deadline )); do
+    local alive=0
+    for file in "$STATE_DIR"/*.pid; do
+      [[ -f "$file" && -d "/proc/$(<"$file")" ]] && alive=1
+    done
+    (( alive == 0 )) && break
+    sleep 1
+  done
   ray stop --force >/dev/null 2>&1 || true
 }
 trap stop_children EXIT TERM INT

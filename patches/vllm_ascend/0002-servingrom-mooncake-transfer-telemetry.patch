@@ -1,0 +1,183 @@
+diff --git a/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py b/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py
+index 0ce4477..ef5cb18 100644
+--- a/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py
++++ b/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py
+@@ -69,6 +69,8 @@ from vllm_ascend.distributed.utils import (
+ )
+ from vllm_ascend.utils import enable_custom_op
+ 
++from servingrom_telemetry.internal import get_internal_telemetry
++
+ # isort: off
+ if TYPE_CHECKING:
+     from vllm.v1.attention.backend import AttentionMetadata  # type: ignore
+@@ -423,6 +425,26 @@ class KVCacheRecvingThread(threading.Thread):
+         self.local_handshake_port = local_handshake_port
+         self.side_channel_port = side_channel_port
+         self.engine = engine
++        self._servingrom = get_internal_telemetry("mooncake")
++        self._servingrom.emit(
++            "kv_transfer_runtime_capability",
++            {
++                "connector": (
++                    "vllm_ascend.distributed.kv_transfer.kv_p2p."
++                    "mooncake_connector.MooncakeConnectorWorker"
++                ),
++                "worker": f"{type(self).__module__}.{type(self).__qualname__}",
++                "transfer_engine": f"{type(engine).__module__}.{type(engine).__qualname__}",
++                "transfer_method": "batch_transfer_sync_read",
++                "source_file": __file__,
++                "process_id": os.getpid(),
++                "tp_rank": tp_rank,
++                "tp_size": tp_size,
++                "engine_id": local_engine_id,
++                "role": "decode_pull",
++                "actual_transfer_owner": "decode_tp_worker",
++            },
++        )
+         if ready_event is None:
+             ready_event = threading.Event()
+         self.ready_event = ready_event
+@@ -529,6 +551,8 @@ class KVCacheRecvingThread(threading.Thread):
+         """Add a new request to the queue for processing."""
+         if remote_port_send_num is None:
+             remote_port_send_num = {}
++        enqueue_wall_ns = time.time_ns()
++        enqueue_mono_ns = time.monotonic_ns()
+         trans_info = {
+             "request_id": request_id,
+             "local_block_ids": local_block_ids,
+@@ -541,9 +565,33 @@ class KVCacheRecvingThread(threading.Thread):
+             "num_computed_tokens": num_computed_tokens,
+             "remote_port_send_num": remote_port_send_num,
+             "all_task_done": all_task_done,
++            "servingrom_enqueue_wall_ns": enqueue_wall_ns,
++            "servingrom_enqueue_mono_ns": enqueue_mono_ns,
++            "servingrom_terminal_emitted": False,
+         }
+         logger.debug("Adding request %s to the queue.Trans info:%s", request_id, trans_info)
+         self.request_queue.put(trans_info)
++        self._servingrom.emit(
++            "kv_transfer_enqueued",
++            {
++                "remote_request_id": remote_request_id,
++                "transfer_role": "receive",
++                "source_engine": remote_engine_id,
++                "target_engine": self.local_engine_id,
++                "tp_rank": self.tp_rank,
++                "tp_size": self.tp_size,
++                "remote_handshake_port": remote_handshake_port,
++                "block_count": sum(len(group) for group in local_block_ids),
++                "actual_bytes": None,
++                "descriptor_count": None,
++                "enqueue_wall_ns": enqueue_wall_ns,
++                "enqueue_mono_ns": enqueue_mono_ns,
++                "queue_depth": self.request_queue.qsize(),
++                "success": None,
++                "error_code": None,
++            },
++            request_id=request_id,
++        )
+ 
+     def get_and_clear_finished_requests(self) -> set[str]:
+         """
+@@ -608,6 +656,32 @@ class KVCacheRecvingThread(threading.Thread):
+                 except Exception as e:
+                     transfer_failed = True
+                     self._mark_failed_recv_request(request_id, req_meta["local_block_ids"])
++                    if not req_meta["servingrom_terminal_emitted"]:
++                        failed_wall_ns = time.time_ns()
++                        failed_mono_ns = time.monotonic_ns()
++                        self._servingrom.emit(
++                            "kv_transfer_failed",
++                            {
++                                "remote_request_id": remote_request_id,
++                                "transfer_role": "receive",
++                                "source_engine": req_meta["remote_engine_id"],
++                                "target_engine": self.local_engine_id,
++                                "tp_rank": self.tp_rank,
++                                "tp_size": self.tp_size,
++                                "remote_handshake_port": remote_handshake_port,
++                                "block_count": sum(
++                                    len(group) for group in req_meta["local_block_ids"]
++                                ),
++                                "actual_bytes": req_meta.get("servingrom_actual_bytes"),
++                                "descriptor_count": req_meta.get("servingrom_descriptor_count"),
++                                "failed_wall_ns": failed_wall_ns,
++                                "failed_mono_ns": failed_mono_ns,
++                                "success": False,
++                                "error_code": type(e).__name__,
++                            },
++                            request_id=request_id,
++                        )
++                        req_meta["servingrom_terminal_emitted"] = True
+                     logger.exception("Failed to transfer KV cache for request %s: %s", remote_request_id, e)
+         finally:
+             if all_task_done:
+@@ -811,7 +885,66 @@ class KVCacheRecvingThread(threading.Thread):
+             dst_list,
+             length_list,
+         )
++        actual_bytes = sum(length_list)
++        descriptor_count = len(length_list)
++        block_count = sum(len(group) for group in local_block_ids)
++        start_wall_ns = time.time_ns()
++        start_mono_ns = time.monotonic_ns()
++        req_meta["servingrom_actual_bytes"] = actual_bytes
++        req_meta["servingrom_descriptor_count"] = descriptor_count
++        self._servingrom.emit(
++            "kv_transfer_started",
++            {
++                "remote_request_id": remote_request_id,
++                "transfer_role": "receive",
++                "source_engine": remote_engine_id,
++                "target_engine": self.local_engine_id,
++                "tp_rank": self.tp_rank,
++                "tp_size": self.tp_size,
++                "remote_handshake_port": remote_handshake_port,
++                "block_count": block_count,
++                "actual_bytes": actual_bytes,
++                "descriptor_count": descriptor_count,
++                "enqueue_wall_ns": req_meta["servingrom_enqueue_wall_ns"],
++                "enqueue_mono_ns": req_meta["servingrom_enqueue_mono_ns"],
++                "start_wall_ns": start_wall_ns,
++                "start_mono_ns": start_mono_ns,
++                "queue_wait_ns": start_mono_ns - req_meta["servingrom_enqueue_mono_ns"],
++                "success": None,
++                "error_code": None,
++            },
++            request_id=req_meta["request_id"],
++        )
+         ret = self.engine.batch_transfer_sync_read(session_id, src_list, dst_list, length_list)
++        complete_mono_ns = time.monotonic_ns()
++        complete_wall_ns = time.time_ns()
++        event_type = "kv_transfer_completed" if ret >= 0 else "kv_transfer_failed"
++        self._servingrom.emit(
++            event_type,
++            {
++                "remote_request_id": remote_request_id,
++                "transfer_role": "receive",
++                "source_engine": remote_engine_id,
++                "target_engine": self.local_engine_id,
++                "tp_rank": self.tp_rank,
++                "tp_size": self.tp_size,
++                "remote_handshake_port": remote_handshake_port,
++                "block_count": block_count,
++                "actual_bytes": actual_bytes,
++                "descriptor_count": descriptor_count,
++                "enqueue_wall_ns": req_meta["servingrom_enqueue_wall_ns"],
++                "enqueue_mono_ns": req_meta["servingrom_enqueue_mono_ns"],
++                "start_wall_ns": start_wall_ns,
++                "start_mono_ns": start_mono_ns,
++                "complete_wall_ns": complete_wall_ns,
++                "complete_mono_ns": complete_mono_ns,
++                "transfer_wall_ns": complete_mono_ns - start_mono_ns,
++                "success": ret >= 0,
++                "error_code": None if ret >= 0 else ret,
++            },
++            request_id=req_meta["request_id"],
++        )
++        req_meta["servingrom_terminal_emitted"] = True
+         if ret < 0:
+             logger.error(
+                 "Mooncake transfer failed for request. remote_request_id=%s, ret=%d. ",

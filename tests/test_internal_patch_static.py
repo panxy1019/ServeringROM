@@ -8,8 +8,8 @@ ROOTS = {
     "core": Path("/vllm-workspace/vllm/vllm/v1/engine/core.py"),
     "scheduler_output": Path("/vllm-workspace/vllm/vllm/v1/core/sched/output.py"),
     "mooncake": Path(
-        "/vllm-workspace/vllm/vllm/distributed/kv_transfer/kv_connector/v1/"
-        "mooncake/mooncake_connector.py"
+        "/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/"
+        "kv_p2p/mooncake_connector.py"
     ),
     "model_runner": Path(
         "/vllm-workspace/vllm-ascend/vllm_ascend/worker/model_runner_v1.py"
@@ -25,7 +25,9 @@ def main() -> None:
     assert "servingrom_iteration_id: int | None = None" in sources["scheduler_output"]
     assert "scheduler_output.servingrom_iteration_id = iteration_id" in sources["core"]
     assert '"kv_transfer_completed"' in sources["mooncake"]
-    assert '"total_bytes": sum(request_lengths)' in sources["mooncake"]
+    assert "actual_bytes = sum(length_list)" in sources["mooncake"]
+    assert "batch_transfer_sync_read" in sources["mooncake"]
+    assert '"kv_transfer_runtime_capability"' in sources["mooncake"]
     assert '"model_execution_batch"' in sources["model_runner"]
     added_model_runner = Path(
         "/opt/servingrom/patches/vllm_ascend/0001-servingrom-model-batch-telemetry.patch"

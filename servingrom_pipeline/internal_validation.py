@@ -97,6 +97,48 @@ def validate_internal_data(
             routed_attempts=association["routed_attempts"],
         )
 
+    kv_requests = defaultdict(list)
+    for row in tables["kv_transfers"]:
+        kv_requests[row.get("request_id")].append(row)
+    for request_id, attempt in attempts.items():
+        decoder = attempt.get("decoder_backend")
+        if not decoder:
+            continue
+        transfers = kv_requests.get(request_id, [])
+        if len(transfers) != 1:
+            fail(
+                "pd_attempt_kv_transfer_cardinality",
+                request_id=request_id,
+                count=len(transfers),
+            )
+            continue
+        transfer = transfers[0]
+        if not transfer.get("success"):
+            fail("pd_attempt_kv_transfer_failed", request_id=request_id)
+        if transfer.get("kv_ready_mono_ns") is None:
+            fail("pd_attempt_kv_ready_missing", request_id=request_id)
+        if int(transfer.get("actual_total_bytes") or 0) <= 0:
+            fail("pd_attempt_kv_bytes_missing", request_id=request_id)
+        if transfer.get("missing_ranks_json") not in ("[]", None):
+            fail(
+                "pd_attempt_kv_rank_missing",
+                request_id=request_id,
+                missing_ranks_json=transfer.get("missing_ranks_json"),
+            )
+        expected_instance = "decode-0" if str(decoder).endswith(":13701") else "decode-1"
+        rank_instances = {
+            row.get("engine_instance")
+            for row in tables["kv_transfer_ranks"]
+            if row.get("request_id") == request_id
+        }
+        if rank_instances != {expected_instance}:
+            fail(
+                "proxy_route_kv_worker_mismatch",
+                request_id=request_id,
+                expected=expected_instance,
+                actual=sorted(str(item) for item in rank_instances),
+            )
+
     iteration_totals = {
         (row["process_instance_id"], row["iteration_id"]): row
         for row in tables["scheduler_iterations"]
@@ -111,17 +153,13 @@ def validate_internal_data(
         if len(members) != iteration["scheduled_request_count"]:
             fail("membership_count_mismatch", process=key[0], iteration_id=key[1])
 
-    kv_by_request: dict[str, list[dict[str, Any]]] = defaultdict(list)
-    for row in tables["kv_transfers"]:
-        kv_by_request[row["request_id"]].append(row)
-    for request_id, rows in kv_by_request.items():
-        event_types = {row["event_type"] for row in rows}
-        if "kv_transfer_completed" in event_types and "kv_transfer_started" not in event_types:
-            fail("kv_complete_without_start", request_id=request_id)
-        if "kv_transfer_started" in event_types and not (
-            {"kv_transfer_completed", "kv_transfer_failed"} & event_types
+    for row in tables["kv_transfer_ranks"]:
+        if row.get("complete_count", 0) and not row.get("start_count", 0):
+            fail("kv_complete_without_start", request_id=row.get("request_id"))
+        if row.get("start_count", 0) != (
+            row.get("complete_count", 0) + row.get("failure_count", 0)
         ):
-            fail("kv_transfer_missing_terminal", request_id=request_id)
+            fail("kv_transfer_missing_terminal", request_id=row.get("request_id"))
 
     prefill_reconciliation = []
     decode_reconciliation = []

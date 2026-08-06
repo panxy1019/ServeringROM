@@ -192,3 +192,28 @@ writer_write_latency_ns_max
 - telemetry 动态开关热切换。
 
 这些限制不会改变模型输出或 D2 调度，因为当前业务代码没有导入本包。
+
+## Ascend Mooncake 最小生命周期
+
+Ascend 运行时由 vLLM-Ascend 注册 `MooncakeConnectorV1`。Decode TP worker
+通过 `TransferEngine.batch_transfer_sync_read()` 从 Prefill 的已注册 KV 区域拉取数据。
+每个实际传输单元只记录以下四类旁路事件：
+
+- `kv_transfer_enqueued`：Decode pull 任务进入 `KVCacheRecvingThread` 队列；
+- `kv_transfer_started`：真实 `length_list` 构造完成、进入 TransferEngine 前；
+- `kv_transfer_completed`：TransferEngine 返回非负状态；
+- `kv_transfer_failed`：TransferEngine 返回负值或实际传输路径抛出异常。
+
+事件保存本地与远端 request ID、source/target engine、执行 TP rank、block 数、
+descriptor 数和 `sum(length_list)` 得到的真实字节数。字节数来自 Decode pull
+描述符，但语义上表示从 Prefill 注册区域读取的源数据量；Prefill 进程不执行
+第二次拷贝，也不会为了遥测重复计算或同步 NPU。
+
+运行时初始化另发一次 `kv_transfer_runtime_capability` marker，用于证明 connector、
+worker、TransferEngine、方法、源码、PID 和 TP rank 的实际归属。它不是请求生命周期事件。
+
+派生表分为：
+
+- `kv_transfer_ranks.parquet`：每个 request、Decode engine、TP rank 一行；
+- `kv_transfers.parquet`：每个 Proxy attempt 和目标 Decode engine 一行，包含 first start、
+  last complete、KV ready、总 bytes、wall time、完成 rank 数和 missing ranks。

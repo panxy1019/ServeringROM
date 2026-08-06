@@ -143,6 +143,61 @@ class InternalPipelineTest(TestCase):
         )
         self.assertEqual(token_tables["token_emissions"][0]["request_id"], request_id)
 
+    def test_kv_rank_events_aggregate_to_one_request_transfer(self):
+        events = []
+        sequence = itertools.count(1)
+        for rank in (0, 1):
+            for event_type, payload in (
+                (
+                    "kv_transfer_enqueued",
+                    {"enqueue_wall_ns": 100 + rank, "enqueue_mono_ns": 200 + rank},
+                ),
+                (
+                    "kv_transfer_started",
+                    {"start_wall_ns": 110 + rank, "start_mono_ns": 210 + rank},
+                ),
+                (
+                    "kv_transfer_completed",
+                    {
+                        "complete_wall_ns": 130 + rank,
+                        "complete_mono_ns": 230 + rank,
+                        "success": True,
+                    },
+                ),
+            ):
+                events.append(
+                    self.event(
+                        next(sequence),
+                        event_type,
+                        {
+                            "engine_role": "decode",
+                            "engine_instance": "decode-0",
+                            "tp_rank": rank,
+                            "tp_size": 2,
+                            "remote_request_id": "prefill-req-1",
+                            "transfer_role": "receive",
+                            "source_engine": "prefill-engine",
+                            "target_engine": "decode-engine",
+                            "block_count": 4,
+                            "actual_bytes": 1024,
+                            "descriptor_count": 8,
+                            **payload,
+                        },
+                        component=f"decode-rank-{rank}",
+                    )
+                )
+        tables = reconstruct_internal_tables(
+            Path(tempfile.mkdtemp()), InternalEventDataset(events, [], [], [])
+        )
+        self.assertEqual(len(tables["kv_transfer_ranks"]), 2)
+        self.assertEqual(len(tables["kv_transfers"]), 1)
+        transfer = tables["kv_transfers"][0]
+        self.assertTrue(transfer["success"])
+        self.assertEqual(transfer["actual_total_bytes"], 2048)
+        self.assertEqual(transfer["completed_rank_count"], 2)
+        self.assertEqual(transfer["missing_ranks_json"], "[]")
+        self.assertEqual(transfer["kv_ready_mono_ns"], 231)
+
 
 if __name__ == "__main__":
     import unittest
