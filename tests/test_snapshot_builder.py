@@ -24,7 +24,7 @@ class SnapshotBuilderTest(TestCase):
         self.assertEqual(_state_at(row, 30), "HANDOFF_WAITING")
         self.assertEqual(_state_at(row, 40), "KV_QUEUED")
         self.assertEqual(_state_at(row, 50), "KV_TRANSFERRING")
-        self.assertEqual(_state_at(row, 60), "DECODE_WAITING")
+        self.assertEqual(_state_at(row, 60), "KV_READY")
         self.assertEqual(_state_at(row, 70), "DECODE_RUNNING")
 
     def test_histogram_clamps_to_overflow_bin(self):

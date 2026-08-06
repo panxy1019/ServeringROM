@@ -240,6 +240,9 @@ def _state_with_quality(row: dict[str, Any], wall_ns: int) -> tuple[str, list[st
     ready = row.get("kv_ready_wall_ns")
     if ready is None or wall_ns < int(ready):
         return "KV_TRANSFERRING", [] if ready is not None else ["kv_ready_missing"]
+    decode_added = row.get("decode_added_wall_ns")
+    if decode_added is None or wall_ns < int(decode_added):
+        return "KV_READY", [] if decode_added is not None else ["decode_add_missing"]
     first_decode = row.get("decode_first_schedule_wall_ns") or row.get("decode_added_wall_ns")
     if first_decode is None or wall_ns < int(first_decode):
         return "DECODE_WAITING", [] if first_decode is not None else ["decode_schedule_missing"]
