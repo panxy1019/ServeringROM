@@ -29,6 +29,7 @@ RUN set -eux; \
     python -m compileall -q \
       /opt/servingrom/servingrom_telemetry \
       /vllm-workspace/vllm/vllm/v1/engine/core.py \
+      /vllm-workspace/vllm/vllm/v1/core/sched/scheduler.py \
       /vllm-workspace/vllm/vllm/v1/core/sched/output.py \
       /vllm-workspace/vllm/vllm/distributed/kv_transfer/kv_connector/v1/mooncake/mooncake_connector.py \
       /vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/kv_p2p/mooncake_connector.py \

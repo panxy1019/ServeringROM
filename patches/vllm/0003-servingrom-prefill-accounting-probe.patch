@@ -1,0 +1,40 @@
+--- a/vllm/v1/core/sched/scheduler.py
++++ b/vllm/v1/core/sched/scheduler.py
+@@ -58,6 +58,8 @@
+ from vllm.v1.structured_output import StructuredOutputManager
+ from vllm.v1.utils import record_function_or_nullcontext
+ 
++from servingrom_telemetry.internal import get_internal_telemetry
++
+ logger = init_logger(__name__)
+ 
+ 
+@@ -961,7 +963,28 @@
+         num_scheduled_tokens = scheduler_output.num_scheduled_tokens
+         for req_id, num_scheduled_token in num_scheduled_tokens.items():
+             request = self.requests[req_id]
++            computed_tokens_before = request.num_computed_tokens
+             request.num_computed_tokens += num_scheduled_token
++            # Side-band observation of the Scheduler's authoritative counter.
++            # It never synchronizes NPU work or changes scheduler state.
++            servingrom = get_internal_telemetry()
++            if servingrom.enabled:
++                servingrom.emit(
++                    "prefill_accounting_probe",
++                    {
++                        "probe_phase": "iteration",
++                        "scheduled_tokens": num_scheduled_token,
++                        "computed_tokens_before": computed_tokens_before,
++                        "computed_tokens_after": request.num_computed_tokens,
++                        "input_tokens": request.num_prompt_tokens,
++                        "output_tokens_after": request.num_output_tokens,
++                        "connector_computed_tokens": None,
++                        "connector_external_tokens": None,
++                        "handoff_token_count": None,
++                        "observation_source": "scheduler._update_after_schedule",
++                    },
++                    request_id=req_id,
++                )
+             request.is_prefill_chunk = request.num_computed_tokens < (
+                 request.num_tokens + request.num_output_placeholders
+             )

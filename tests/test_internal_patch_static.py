@@ -7,6 +7,7 @@ from pathlib import Path
 ROOTS = {
     "core": Path("/vllm-workspace/vllm/vllm/v1/engine/core.py"),
     "scheduler_output": Path("/vllm-workspace/vllm/vllm/v1/core/sched/output.py"),
+    "scheduler": Path("/vllm-workspace/vllm/vllm/v1/core/sched/scheduler.py"),
     "mooncake": Path(
         "/vllm-workspace/vllm-ascend/vllm_ascend/distributed/kv_transfer/"
         "kv_p2p/mooncake_connector.py"
@@ -24,6 +25,8 @@ def main() -> None:
         ast.parse(source, filename=str(ROOTS[name]))
     assert "servingrom_iteration_id: int | None = None" in sources["scheduler_output"]
     assert "scheduler_output.servingrom_iteration_id = iteration_id" in sources["core"]
+    assert '"prefill_accounting_probe"' in sources["scheduler"]
+    assert "computed_tokens_after" in sources["scheduler"]
     assert '"kv_transfer_completed"' in sources["mooncake"]
     assert "actual_bytes = sum(length_list)" in sources["mooncake"]
     assert "batch_transfer_sync_read" in sources["mooncake"]

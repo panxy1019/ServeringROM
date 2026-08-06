@@ -169,15 +169,26 @@ def validate_internal_data(
     output_by_request: dict[tuple[str, str], int] = Counter()
     for row in tables["token_emissions"]:
         output_by_request[(row["component"], row["request_id"])] += int(row["new_token_count"])
+    accounting_by_request: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in tables.get("prefill_accounting", []):
+        accounting_by_request[row.get("request_id")].append(row)
     for request_id, rows in engine_by_request.items():
         for row in rows:
             if row["component"] == "prefill":
                 scheduled = membership_by_request[("prefill", request_id)]
                 prompt = row.get("prompt_tokens")
+                probes = accounting_by_request.get(request_id, [])
+                initial = row.get("initial_computed_tokens")
+                observed_after = [item.get("computed_tokens_after") for item in probes if item.get("computed_tokens_after") is not None]
+                final = max(observed_after) if observed_after else None
+                handoff = (int(prompt) - int(final)) if prompt is not None and final is not None else None
+                exact = initial is not None and final is not None and handoff is not None and int(final) - int(initial) == scheduled and prompt == int(final) + int(handoff)
                 delta = scheduled - prompt if prompt is not None else None
-                classification = "exact" if delta == 0 else "requires_runtime_semantics_confirmation"
+                classification = "exact" if exact else "accounting_probe_missing_or_mismatch"
+                if not exact:
+                    fail("prefill_accounting_unproven", request_id=request_id)
                 prefill_reconciliation.append(
-                    {"request_id": request_id, "prompt_tokens": prompt, "scheduled_tokens": scheduled, "delta": delta, "classification": classification}
+                    {"request_id": request_id, "prompt_tokens": prompt, "scheduled_tokens": scheduled, "delta": delta, "initial_computed_tokens": initial, "final_computed_tokens": final, "handoff_token_count": handoff, "classification": classification}
                 )
             elif row["component"] in {"decode-0", "decode-1"}:
                 engine_tokens = output_by_request[(row["component"], request_id)]

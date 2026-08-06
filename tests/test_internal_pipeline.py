@@ -39,7 +39,7 @@ class InternalPipelineTest(TestCase):
 
     def test_reconstruction_and_iteration_reconciliation(self):
         events = [
-            self.event(1, "engine_request_added", {"prompt_tokens": 8, "max_output_tokens": 1}),
+            self.event(1, "engine_request_added", {"prompt_tokens": 8, "initial_computed_tokens": 0, "max_output_tokens": 1}),
             self.event(
                 2,
                 "scheduler_membership",
@@ -56,14 +56,15 @@ class InternalPipelineTest(TestCase):
                 {"iteration_id": 1, "members": [{"request_id": "req-1", "new_token_count": 1}]},
             ),
             self.event(5, "engine_request_terminal", {"finish_reason": "stop"}),
+            self.event(6, "prefill_accounting_probe", {"probe_phase": "iteration", "computed_tokens_before": 0, "computed_tokens_after": 8, "scheduled_tokens": 8}),
         ]
         dataset = InternalEventDataset(
             events=events,
             summaries=[
                 {
                     "process_instance_id": "proc-prefill",
-                    "events_enqueued": 5,
-                    "events_written": 5,
+                    "events_enqueued": 7,
+                    "events_written": 7,
                     "events_dropped_queue_full": 0,
                     "events_dropped_writer_failed": 0,
                 }

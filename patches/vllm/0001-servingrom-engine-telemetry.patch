@@ -17,11 +17,12 @@
          self.aborts_queue = queue.Queue[list[str]]()
  
          self._idle_state_callbacks: list[Callable] = []
-@@ -230,6 +231,216 @@
+@@ -230,6 +231,244 @@
          # Enable environment variable cache (e.g. assume no more
          # environment variable overrides after this point)
          enable_envs_cache()
 +        self._servingrom = get_internal_telemetry()
++        self._servingrom_prefill_accounting: dict[str, dict[str, int]] = {}
 +
 +    def _servingrom_queue_counts(self) -> tuple[int, int]:
 +        running = len(getattr(self.scheduler, "running", ()))
@@ -172,6 +173,33 @@
 +                    }
 +                )
 +                if output.finish_reason is not None:
++                    accounting = self._servingrom_prefill_accounting.pop(
++                        output.request_id, None
++                    )
++                    member = next(
++                        (item for item in state["members"]
++                         if item["request_id"] == output.request_id),
++                        None,
++                    )
++                    if accounting is not None and member is not None:
++                        final_computed_tokens = (
++                            member["computed_tokens_before"]
++                            + member["scheduled_tokens"]
++                        )
++                        self._servingrom.emit(
++                            "prefill_accounting_probe",
++                            {
++                                "probe_phase": "request_terminal",
++                                **accounting,
++                                "final_computed_tokens": final_computed_tokens,
++                                "handoff_token_count": (
++                                    accounting["input_tokens"]
++                                    - final_computed_tokens
++                                ),
++                                "observation_source": "engine_core_terminal_plus_scheduler_probe",
++                            },
++                            request_id=output.request_id,
++                        )
 +                    self._servingrom.emit(
 +                        "engine_request_terminal",
 +                        {
@@ -234,7 +262,7 @@
  
      @instrument(span_name="Prepare model")
      def _initialize_kv_caches(self, vllm_config: VllmConfig) -> KVCacheConfig:
-@@ -366,6 +577,17 @@
+@@ -366,6 +577,22 @@
              )
  
          self.scheduler.add_request(request)
@@ -243,12 +271,17 @@
 +                "engine_request_added",
 +                {
 +                    "prompt_tokens": request.num_prompt_tokens,
++                    "initial_computed_tokens": request.num_computed_tokens,
 +                    "max_output_tokens": request.max_tokens,
 +                    "request_wave": request_wave,
 +                    "has_kv_transfer": request.kv_transfer_params is not None,
 +                },
 +                request_id=request.request_id,
 +            )
++            self._servingrom_prefill_accounting[request.request_id] = {
++                "input_tokens": request.num_prompt_tokens,
++                "initial_computed_tokens": request.num_computed_tokens,
++            }
          if request.abort_immediately:
              # Immediately abort so the connector's request_finished hook runs
              # to free any pre-admission KV-transfer resources.
