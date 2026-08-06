@@ -302,11 +302,21 @@ def summarize(
     }
 
 
-def backlog_trend(health: list[dict[str, Any]]) -> tuple[float, float]:
-    clean = [row for row in health if row.get("request_num") is not None]
+def backlog_trend(
+    health: list[dict[str, Any]],
+    *,
+    start_wall_ns: int | None = None,
+    end_wall_ns: int | None = None,
+) -> tuple[float, float, float]:
+    clean = [
+        row for row in health
+        if row.get("request_num") is not None
+        and (start_wall_ns is None or row["ts_wall_ns"] >= start_wall_ns)
+        and (end_wall_ns is None or row["ts_wall_ns"] < end_wall_ns)
+    ]
     clean = clean[len(clean) // 2:]
     if len(clean) < 2:
-        return math.inf, math.inf
+        return math.inf, math.inf, math.inf
     x = [(row["ts_wall_ns"] - clean[0]["ts_wall_ns"]) / 1e9 for row in clean]
     y = [float(row["request_num"]) for row in clean]
     x_mean, y_mean = statistics.mean(x), statistics.mean(y)
@@ -314,7 +324,7 @@ def backlog_trend(health: list[dict[str, Any]]) -> tuple[float, float]:
     slope = sum((a - x_mean) * (b - y_mean) for a, b in zip(x, y)) / denominator if denominator else 0.0
     edge = max(2, len(clean) // 5)
     backlog_growth = statistics.mean(y[-edge:]) - statistics.mean(y[:edge])
-    return slope, backlog_growth
+    return slope, backlog_growth, y[-1]
 
 
 async def run_formal(args: argparse.Namespace, workload: dict[str, Any]) -> dict[str, Any]:
@@ -399,41 +409,76 @@ async def run_calibration(args: argparse.Namespace, workload: dict[str, Any]) ->
             tasks: list[asyncio.Task] = []
             rng = random.Random(args.seed + candidate_index * 100000)
             rate_function = arrival_rate_function("poisson", rate, on_seconds=1, off_seconds=1, on_multiplier=2, duration=args.measurement_seconds)
+            segment_start_wall_ns = time.time_ns()
             await schedule_segment(
                 client=client, endpoint=args.endpoint, prompt_bank=prompt_bank,
                 workload=workload, rate_function=rate_function,
                 duration=args.measurement_seconds, rng=rng, seed=args.seed,
                 run_id=args.run_id, phase=f"cal-{candidate_index}", tasks=tasks, start_index=0,
             )
+            segment_end_wall_ns = time.time_ns()
             await asyncio.gather(*tasks)
             drain = await wait_for_drain(client, args.endpoint, args.drain_timeout_seconds)
             stop_health.set()
             await monitor
             request_results = [task.result() for task in tasks]
             summary = summarize(request_results, health, None, None)
-            slope, growth = backlog_trend(health)
+            slope, growth, end_inventory = backlog_trend(
+                health,
+                start_wall_ns=segment_start_wall_ns,
+                end_wall_ns=segment_end_wall_ns,
+            )
             arrivals = max(summary["arrival_count"], 1)
             accepted = summary["arrival_count"] - summary["rejected_count"]
             completion_gap = abs(accepted - summary["success_count"])
+            final_completion_wall_ns = max(
+                (
+                    int(row["arrival_wall_ns"] + row["e2e_seconds"] * 1e9)
+                    for row in request_results
+                ),
+                default=segment_end_wall_ns,
+            )
+            backlog_clear_seconds = max(
+                0.0,
+                (final_completion_wall_ns - segment_end_wall_ns) / 1e9,
+            )
+            growth_limit = max(2.0, accepted * 0.10)
+            sustained_growth = (
+                slope > args.backlog_slope_max
+                and growth > growth_limit
+                and end_inventory > growth_limit
+            )
             stable = (
                 drain["drained"]
                 and summary["rejected_count"] / arrivals <= args.reject_rate_max
                 and summary["error_count"] / arrivals <= args.error_rate_max
                 and completion_gap <= max(1, math.ceil(accepted * 0.01))
-                and (slope <= args.backlog_slope_max or growth <= 1.0)
+                and not sustained_growth
+                and backlog_clear_seconds <= max(30.0, args.measurement_seconds * 0.50)
             )
             results.append({
                 "candidate_rate": rate, "stable": stable,
                 "backlog_slope_per_second": slope,
                 "backlog_edge_mean_growth": growth,
+                "backlog_end_inventory": end_inventory,
+                "backlog_growth_limit": growth_limit,
+                "backlog_clear_seconds": backlog_clear_seconds,
+                "sustained_backlog_growth": sustained_growth,
                 "accepted_completion_gap": completion_gap,
                 "summary": summary, "drain": drain,
             })
+            print(json.dumps({
+                "calibration_workload": workload["name"],
+                **results[-1],
+            }, ensure_ascii=False, sort_keys=True), flush=True)
             if not stable:
                 break
     stable_rates = [row["candidate_rate"] for row in results if row["stable"]]
     if not stable_rates:
-        raise RuntimeError(f"no stable calibration point for {workload['name']}")
+        raise RuntimeError(
+            f"no stable calibration point for {workload['name']}: "
+            f"{json.dumps(results, ensure_ascii=False, sort_keys=True)}"
+        )
     return {
         "schema_version": "servingrom.capacity_calibration.v1",
         "workload": workload["name"],
