@@ -1,0 +1,11 @@
+{
+  "name": "mixed-bimodal",
+  "description": "短请求与长请求固定混合，激活多峰队列和并行生命周期。",
+  "input_token_distribution": [{"tokens": 128, "weight": 0.55}, {"tokens": 384, "weight": 0.15}, {"tokens": 3072, "weight": 0.20}, {"tokens": 5632, "weight": 0.10}],
+  "output_token_distribution": [{"tokens": 32, "weight": 0.45}, {"tokens": 128, "weight": 0.35}, {"tokens": 256, "weight": 0.20}],
+  "stream_ratio": 0.75,
+  "ttft_slo_ms": 3000,
+  "tpot_slo_ms": 100,
+  "prompt_template": "教材双峰负载：请分析给定知识材料并输出结构清晰、计算准确的答案。材料覆盖概念、练习、公式、图表文字和推理步骤。",
+  "max_context_tokens": 8192
+}

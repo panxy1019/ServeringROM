@@ -6,7 +6,7 @@ import json
 import math
 import re
 from collections import Counter, defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -572,9 +572,33 @@ def _snapshot_manifest(root: Path, snapshot_dir: Path, input_paths: list[Path]) 
     }
 
 
+def _measurement_contract(root: Path, config: SnapshotConfig) -> tuple[SnapshotConfig, int | None, int | None]:
+    workload_path = root / "metadata" / "workload.json"
+    measurement_path = root / "metadata" / "measurement.json"
+    effective = config
+    if workload_path.exists():
+        workload = json.loads(workload_path.read_text(encoding="utf-8"))
+        effective = replace(
+            config,
+            default_ttft_slo_ms=float(workload.get("ttft_slo_ms", config.default_ttft_slo_ms)),
+            default_tpot_slo_ms=float(workload.get("tpot_slo_ms", config.default_tpot_slo_ms)),
+        )
+    if not measurement_path.exists():
+        return effective, None, None
+    measurement = json.loads(measurement_path.read_text(encoding="utf-8"))
+    start = int(measurement["measurement_start_wall_ns"])
+    end = int(measurement["measurement_end_wall_ns"])
+    if start >= end:
+        raise ValueError("measurement interval must be non-empty")
+    if start % effective.period_ns or end % effective.period_ns:
+        raise ValueError("measurement interval must align to snapshot period")
+    return effective, start, end
+
+
 def build_snapshots(run_root: Path, config: SnapshotConfig = SnapshotConfig()) -> dict[str, Any]:
     import numpy as np
     root = Path(run_root)
+    config, measurement_start, measurement_end = _measurement_contract(root, config)
     derived = root / "derived"
     snapshot_dir = derived / "snapshots"
     snapshot_dir.mkdir(parents=True, exist_ok=True)
@@ -588,8 +612,10 @@ def build_snapshots(run_root: Path, config: SnapshotConfig = SnapshotConfig()) -
     terminals = [int(row["terminal_wall_ns"]) for row in requests if row.get("terminal_wall_ns") is not None]
     if not arrivals or not terminals:
         raise ValueError("snapshot measurement requires request arrival and terminal events")
-    start = min(arrivals) // config.period_ns * config.period_ns
-    end = ((max(terminals) // config.period_ns) + 1) * config.period_ns
+    start = measurement_start if measurement_start is not None else min(arrivals) // config.period_ns * config.period_ns
+    end = measurement_end if measurement_end is not None else ((max(terminals) // config.period_ns) + 1) * config.period_ns
+    if start >= end:
+        raise ValueError("snapshot interval is empty")
     boundaries = list(range(start, end + config.period_ns, config.period_ns))
     state_vectors: list[list[float]] = []
     state_maps: list[dict[str, str]] = []
@@ -648,6 +674,7 @@ def build_snapshots(run_root: Path, config: SnapshotConfig = SnapshotConfig()) -
             "arrivals": arrivals_count, "terminals": terminal_count,
             "component_coverage": _json(component_coverage), "run_id": run_id,
             "config_id": config_id,
+            "segment": "measurement" if measurement_start is not None else "full_run",
         }
         window_rows.append(row)
         for request_id in sorted(state_maps[index]):
@@ -700,6 +727,11 @@ def build_snapshots(run_root: Path, config: SnapshotConfig = SnapshotConfig()) -
         "scheduler_membership", "token_emissions", "kv_transfer_ranks", "kv_transfers",
         "model_execution_batches", "device_metrics", "prefill_accounting",
     )]
+    inputs.extend([
+        root / "metadata" / "measurement.json",
+        root / "metadata" / "workload.json",
+        root / "metadata" / "frozen_schema.json",
+    ])
     manifest = _snapshot_manifest(root, snapshot_dir, inputs)
     (snapshot_dir / "snapshot_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     return {

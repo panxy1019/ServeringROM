@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: servingrom-rom-results-helper
+  namespace: infra-learning
+  labels:
+    app: servingrom-rom-results-helper
+spec:
+  restartPolicy: Always
+  nodeSelector:
+    kubernetes.io/arch: arm64
+    kubernetes.io/hostname: a3-server-00
+  containers:
+    - name: helper
+      image: 110.120.0.3:8889/infra/qwen36-pd-worker:v0.22.1rc1-a3-ray248-servingrom-snapshot-v7
+      imagePullPolicy: IfNotPresent
+      command: ["/bin/sh", "-c", "exec sleep infinity"]
+      resources:
+        requests: {cpu: "100m", memory: 256Mi}
+        limits: {cpu: "1", memory: 1Gi}
+      volumeMounts:
+        - {name: results, mountPath: /servingrom-results}
+  volumes:
+    - name: results
+      hostPath:
+        path: /home/admin/servingrom-results
+        type: DirectoryOrCreate

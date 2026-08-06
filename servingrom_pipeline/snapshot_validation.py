@@ -93,6 +93,18 @@ def validate_snapshots(run_root: Path) -> dict[str, Any]:
         "disturbance_dimensions": disturbance.shape[1] if disturbance.ndim == 2 else 0,
         "output_dimensions": output.shape[1] if output.ndim == 2 else 0,
     })
+    measurement_path = root / "metadata" / "measurement.json"
+    if measurement_path.exists():
+        measurement = json.loads(measurement_path.read_text(encoding="utf-8"))
+        expected_windows = (
+            int(measurement["measurement_end_wall_ns"])
+            - int(measurement["measurement_start_wall_ns"])
+        ) // (int(measurement["snapshot_period_ms"]) * 1_000_000)
+        metrics["expected_measurement_windows"] = expected_windows
+        if len(windows) != expected_windows:
+            fail("measurement_window_count_mismatch", expected=expected_windows, actual=len(windows))
+        if any(row.get("segment") != "measurement" for row in windows):
+            fail("non_measurement_window_in_training_snapshot")
     if not (len(windows) == len(state) == len(next_state) == len(disturbance) == len(output) == len(quality)):
         fail("snapshot_row_count_mismatch", windows=len(windows), state=len(state), next_state=len(next_state), disturbance=len(disturbance), output=len(output), quality=len(quality))
     for expected, row in enumerate(windows):
@@ -223,6 +235,21 @@ def validate_snapshots(run_root: Path) -> dict[str, Any]:
     metrics["snapshot_manifest_mismatch_count"] = len(manifest_bad)
     if manifest_bad:
         fail("snapshot_manifest_mismatch", files=manifest_bad)
+    frozen_path = root / "metadata" / "frozen_schema.json"
+    if frozen_path.exists():
+        frozen = json.loads(frozen_path.read_text(encoding="utf-8"))
+        actual_frozen = {
+            "state_index_sha256": _sha256(snapshot_dir / "state_index.json"),
+            "bin_schema_sha256": _sha256(snapshot_dir / "bin_schema.yaml"),
+        }
+        frozen_bad = {
+            key: {"expected": frozen.get(key), "actual": value}
+            for key, value in actual_frozen.items()
+            if frozen.get(key) != value
+        }
+        metrics["frozen_schema_mismatch_count"] = len(frozen_bad)
+        if frozen_bad:
+            fail("frozen_schema_mismatch", fields=frozen_bad)
     return {
         "schema_version": "servingrom.snapshot_quality.v2",
         "valid": not violations,

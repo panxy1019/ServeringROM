@@ -1,0 +1,11 @@
+{
+  "name": "balanced",
+  "description": "中等 Prompt 与中等输出混合，覆盖常规 Prefill/Decode 动力学。",
+  "input_token_distribution": [{"tokens": 256, "weight": 0.25}, {"tokens": 512, "weight": 0.50}, {"tokens": 1024, "weight": 0.25}],
+  "output_token_distribution": [{"tokens": 64, "weight": 0.35}, {"tokens": 128, "weight": 0.45}, {"tokens": 256, "weight": 0.20}],
+  "stream_ratio": 0.80,
+  "ttft_slo_ms": 2000,
+  "tpot_slo_ms": 100,
+  "prompt_template": "教材常规推理负载：请基于以下材料分步骤解释概念、公式和例题。材料：整数、分数、比例、几何与统计知识需要准确推导。",
+  "max_context_tokens": 8192
+}

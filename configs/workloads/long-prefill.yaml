@@ -1,0 +1,11 @@
+{
+  "name": "long-prefill",
+  "description": "长 Prompt、短输出，激活 Prefill queue、Mooncake bytes 和 handoff 状态。",
+  "input_token_distribution": [{"tokens": 2048, "weight": 0.25}, {"tokens": 4096, "weight": 0.50}, {"tokens": 6144, "weight": 0.25}],
+  "output_token_distribution": [{"tokens": 16, "weight": 0.50}, {"tokens": 32, "weight": 0.35}, {"tokens": 64, "weight": 0.15}],
+  "stream_ratio": 0.65,
+  "ttft_slo_ms": 5000,
+  "tpot_slo_ms": 100,
+  "prompt_template": "教材长上下文负载：请读取材料并给出简洁结论。材料包含章节定义、推导、表格说明和连续例题，必须依据材料回答，不添加外部事实。",
+  "max_context_tokens": 8192
+}

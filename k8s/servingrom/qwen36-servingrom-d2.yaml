@@ -46,6 +46,8 @@ spec:
             - {name: SERVINGROM_EXPERIMENT_ID, value: servingrom-internal-phase-a}
             - {name: SERVINGROM_RUN_ID, value: phase-a-placeholder}
             - {name: SERVINGROM_RESULTS_ROOT, value: /servingrom-results}
+            - {name: SERVINGROM_RUN_CONTROL_FILE, value: /var/run/qwen36-pd/servingrom-run-control.json}
+            - {name: SERVINGROM_RUN_CONTROL_ACK_DIR, value: /var/run/qwen36-pd/servingrom-run-control-acks}
             - {name: PHYSICAL_IDS, value: "10,11,12,13,14,15"}
             - {name: DECODE_AB_MODE, value: "D2"}
             - {name: MODEL_PATH, value: /models/Qwen3.6-27B-w8a8}
@@ -77,6 +79,8 @@ spec:
             - {name: hccn-tool, mountPath: /usr/local/Ascend/driver/tools/hccn_tool, readOnly: true}
             - {name: hccn-conf, mountPath: /etc/hccn.conf, readOnly: true}
             - {name: servingrom-results, mountPath: /servingrom-results}
+            - {name: telemetry-hot, mountPath: /opt/servingrom/servingrom_telemetry, readOnly: true}
+            - {name: entrypoint-hot, mountPath: /opt/servingrom/scripts/pd-worker-entrypoint-instrumented.sh, subPath: pd-worker-entrypoint-instrumented.sh, readOnly: true}
       volumes:
         - name: model
           hostPath: {path: /home/admin/models/Qwen3.6-27B-w8a8, type: Directory}
@@ -98,6 +102,10 @@ spec:
           hostPath: {path: /etc/hccn.conf, type: File}
         - name: servingrom-results
           hostPath: {path: /home/admin/servingrom-results, type: DirectoryOrCreate}
+        - name: telemetry-hot
+          configMap: {name: servingrom-telemetry-hot-v1, defaultMode: 365}
+        - name: entrypoint-hot
+          configMap: {name: servingrom-entrypoint-hot-v1, defaultMode: 365}
 ---
 apiVersion: v1
 kind: Service

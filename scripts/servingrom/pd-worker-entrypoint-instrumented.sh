@@ -13,9 +13,28 @@ SERVINGROM_RESULTS_ROOT=${SERVINGROM_RESULTS_ROOT:-/servingrom-results}
 : "${SERVINGROM_RUN_ID:?SERVINGROM_RUN_ID is required}"
 : "${SERVINGROM_CONFIG_ID:?SERVINGROM_CONFIG_ID is required}"
 export SERVINGROM_RUN_ROOT="$SERVINGROM_RESULTS_ROOT/$SERVINGROM_EXPERIMENT_ID/$SERVINGROM_RUN_ID"
+export SERVINGROM_RUN_CONTROL_FILE=${SERVINGROM_RUN_CONTROL_FILE:-$STATE_DIR/servingrom-run-control.json}
+export SERVINGROM_RUN_CONTROL_ACK_DIR=${SERVINGROM_RUN_CONTROL_ACK_DIR:-$STATE_DIR/servingrom-run-control-acks}
 
 mkdir -p "$STATE_DIR" "$LOG_DIR" "$SERVINGROM_RUN_ROOT"/{metadata,derived,reports} \
   "$SERVINGROM_RUN_ROOT"/raw/{proxy,prefill,decode-0,decode-1,mooncake,device}
+mkdir -p "$SERVINGROM_RUN_CONTROL_ACK_DIR"
+python3 - "$SERVINGROM_RUN_CONTROL_FILE" "$SERVINGROM_EXPERIMENT_ID" "$SERVINGROM_CONFIG_ID" <<'PY'
+import json, os, sys
+path, experiment_id, config_id = sys.argv[1:]
+temporary = path + ".tmp"
+with open(temporary, "w", encoding="utf-8") as stream:
+    json.dump({
+        "generation": 0,
+        "active": False,
+        "experiment_id": experiment_id,
+        "run_id": "bootstrap-inactive",
+        "config_id": config_id,
+        "run_root": os.path.join(os.environ["SERVINGROM_RESULTS_ROOT"], experiment_id, "bootstrap-inactive"),
+    }, stream)
+    stream.write("\n")
+os.replace(temporary, path)
+PY
 source /usr/local/Ascend/driver/bin/setenv.bash
 if [[ -f /usr/local/Ascend/ascend-toolkit/set_env.sh ]]; then
   source /usr/local/Ascend/ascend-toolkit/set_env.sh

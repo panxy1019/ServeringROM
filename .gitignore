@@ -35,6 +35,7 @@ results/
 raw/
 **/raw/
 diagnostics/runs/
+.campaign/
 
 # Build and language caches
 __pycache__/
@@ -64,4 +65,3 @@ hs_err_pid*
 *.swp
 *.swo
 .DS_Store
-
