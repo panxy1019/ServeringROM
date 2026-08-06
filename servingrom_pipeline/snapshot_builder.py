@@ -146,14 +146,17 @@ def _state_at(row: dict[str, Any], t: int) -> str:
     arrival = row.get("arrival_wall_ns")
     if arrival is None or t < arrival:
         return "ABSENT"
-    terminal = row.get("terminal_wall_ns") or row.get("decode_terminal_wall_ns")
     status = str(row.get("terminal_event") or "")
+    terminal = row.get("terminal_wall_ns") or row.get("decode_terminal_wall_ns")
+    if status == "request_rejected" and terminal is not None and t >= terminal:
+        return "REJECTED"
     if terminal is not None and t >= terminal:
         return "CANCELLED" if "cancel" in status else "FAILED" if "error" in status else "COMPLETED"
-    if row.get("terminal_event") == "request_rejected":
-        return "REJECTED"
+    submit = row.get("prefill_submit_wall_ns")
+    if submit is None or t < submit:
+        return "ADMITTED"
     if row.get("prefill_added_wall_ns") is None or t < row["prefill_added_wall_ns"]:
-        return "ADMITTED" if row.get("admission_accepted", True) else "REJECTED"
+        return "PREFILL_WAITING"
     if row.get("prefill_terminal_wall_ns") is None or t < row["prefill_terminal_wall_ns"]:
         return "PREFILL_RUNNING"
     enqueue = row.get("kv_enqueue_wall_ns")
@@ -166,7 +169,7 @@ def _state_at(row: dict[str, Any], t: int) -> str:
     if ready is None or t < ready:
         return "KV_TRANSFERRING"
     if row.get("decode_added_wall_ns") is None or t < row["decode_added_wall_ns"]:
-        return "KV_READY"
+        return "DECODE_WAITING"
     return "DECODE_RUNNING"
 
 
