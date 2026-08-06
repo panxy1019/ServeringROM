@@ -18,6 +18,7 @@ DERIVED_TABLES = (
     "kv_transfers",
     "model_execution_batches",
     "device_metrics",
+    "prefill_accounting",
 )
 
 _UUID_PATTERN = re.compile(
@@ -130,6 +131,10 @@ def reconstruct_internal_tables(
             row = _base(event, attempts)
             row.update(payload)
             tables["model_execution_batches"].append(row)
+        elif event_type == "prefill_accounting_probe":
+            row = _base(event, attempts)
+            row.update(payload)
+            tables["prefill_accounting"].append(row)
         elif event_type == "device_metric":
             row = _base(event, attempts)
             row.update(
@@ -166,6 +171,7 @@ def reconstruct_internal_tables(
                 "terminal_wall_ns": terminal.get("ts_wall_ns") if terminal else None,
                 "terminal_event": terminal.get("event_type") if terminal else None,
                 "prompt_tokens": added.get("payload", {}).get("prompt_tokens") if added else None,
+                "initial_computed_tokens": added.get("payload", {}).get("initial_computed_tokens") if added else None,
                 "max_output_tokens": added.get("payload", {}).get("max_output_tokens") if added else None,
                 "has_kv_transfer": added.get("payload", {}).get("has_kv_transfer") if added else None,
                 "finish_reason": terminal.get("payload", {}).get("finish_reason") if terminal else None,
@@ -277,6 +283,14 @@ def reconstruct_internal_tables(
             (row["last_complete_mono_ns"] for row in ranks if row.get("last_complete_mono_ns") is not None),
             default=None,
         )
+        first_start_wall = min(
+            (row["first_start_wall_ns"] for row in ranks if row.get("first_start_wall_ns") is not None),
+            default=None,
+        )
+        last_complete_wall = max(
+            (row["last_complete_wall_ns"] for row in ranks if row.get("last_complete_wall_ns") is not None),
+            default=None,
+        )
         tables["kv_transfers"].append(
             {
                 **{key: anchor.get(key) for key in (
@@ -295,6 +309,9 @@ def reconstruct_internal_tables(
                 "first_start_mono_ns": first_start,
                 "last_complete_mono_ns": last_complete,
                 "kv_ready_mono_ns": last_complete if not missing_ranks else None,
+                "first_start_wall_ns": first_start_wall,
+                "last_complete_wall_ns": last_complete_wall,
+                "kv_ready_wall_ns": last_complete_wall if not missing_ranks else None,
                 "transfer_wall_ns": (
                     last_complete - first_start
                     if first_start is not None and last_complete is not None
