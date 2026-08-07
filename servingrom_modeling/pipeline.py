@@ -257,20 +257,53 @@ def run_pipeline(
         name for name in key_outputs
         if not bool(normalizers["Y"].active[output_names.index(name)])
     ]
+    gate_config = config["gate"]
+    evaluation_splits = ("validation", "test", "test/transient")
+    key_output_errors = {
+        split: {
+            name: final_evaluation[split]["per_output_nrmse"][name]
+            for name in key_outputs
+            if name not in unavailable_key_outputs
+        }
+        for split in evaluation_splits
+    }
+    key_output_failures = {
+        split: {
+            name: error
+            for name, error in errors.items()
+            if error > float(gate_config["key_output_nrmse_max"])
+        }
+        for split, errors in key_output_errors.items()
+    }
     gate_checks = {
-        "spectral_radius": selected_model.spectral_radius <= float(config["gate"]["spectral_radius_max"]),
+        "spectral_radius": selected_model.spectral_radius <= float(gate_config["spectral_radius_max"]),
         "validation_rollout_finite": final_evaluation["validation"]["finite"],
         "test_rollout_finite": final_evaluation["test"]["finite"],
         "transient_rollout_finite": final_evaluation["test/transient"]["finite"],
-        "validation_state_skill_positive": final_evaluation["validation"]["state_skill_vs_initial_persistence"] > 0,
-        "test_state_skill_positive": final_evaluation["test"]["state_skill_vs_initial_persistence"] > 0,
-        "transient_state_skill_positive": final_evaluation["test/transient"]["state_skill_vs_initial_persistence"] > 0,
-        "validation_output_skill_positive": final_evaluation["validation"]["output_skill_vs_train_mean"] > 0,
-        "transient_output_skill_positive": final_evaluation["test/transient"]["output_skill_vs_train_mean"] > 0,
+        "validation_state_nrmse": final_evaluation["validation"]["state_nrmse"] <= float(gate_config["state_nrmse_max"]),
+        "test_state_nrmse": final_evaluation["test"]["state_nrmse"] <= float(gate_config["state_nrmse_max"]),
+        "transient_state_nrmse": final_evaluation["test/transient"]["state_nrmse"] <= float(gate_config["state_nrmse_max"]),
+        "validation_output_nrmse": final_evaluation["validation"]["output_nrmse"] <= float(gate_config["output_nrmse_max"]),
+        "test_output_nrmse": final_evaluation["test"]["output_nrmse"] <= float(gate_config["output_nrmse_max"]),
+        "transient_output_nrmse": final_evaluation["test/transient"]["output_nrmse"] <= float(gate_config["output_nrmse_max"]),
+        "validation_state_skill": final_evaluation["validation"]["state_skill_vs_initial_persistence"] >= float(gate_config["state_skill_min"]),
+        "test_state_skill": final_evaluation["test"]["state_skill_vs_initial_persistence"] >= float(gate_config["state_skill_min"]),
+        "transient_state_skill": final_evaluation["test/transient"]["state_skill_vs_initial_persistence"] >= float(gate_config["state_skill_min"]),
+        "validation_output_skill": final_evaluation["validation"]["output_skill_vs_train_mean"] >= float(gate_config["output_skill_min"]),
+        "test_output_skill": final_evaluation["test"]["output_skill_vs_train_mean"] >= float(gate_config["output_skill_min"]),
+        "transient_output_skill": final_evaluation["test/transient"]["output_skill_vs_train_mean"] >= float(gate_config["output_skill_min"]),
         "key_outputs_observable": not unavailable_key_outputs,
+        "key_output_rollout_accuracy": not any(key_output_failures.values()),
     }
     actuator_ready = all(gate_checks.values())
-    gate = {"actuator_mpc_ready": actuator_ready, "checks": gate_checks, "unavailable_key_outputs": unavailable_key_outputs}
+    gate = {
+        "actuator_mpc_ready": actuator_ready,
+        "checks": gate_checks,
+        "thresholds": gate_config,
+        "unavailable_key_outputs": unavailable_key_outputs,
+        "key_output_nrmse": key_output_errors,
+        "key_output_failures": key_output_failures,
+    }
     save_json(output_root / "evaluation/actuator_mpc_gate.json", gate)
     _write_markdown(output_root / "reports/STEP12_ROLLOUT_REPORT.md", "Step 12 多步 Rollout 与 Held-out Transient 验证", [
         f"- Validation state/output NRMSE：`{final_evaluation['validation']['state_nrmse']:.6f}` / `{final_evaluation['validation']['output_nrmse']:.6f}`",
@@ -278,6 +311,7 @@ def run_pipeline(
         f"- Transient state/output NRMSE：`{final_evaluation['test/transient']['state_nrmse']:.6f}` / `{final_evaluation['test/transient']['output_nrmse']:.6f}`",
         f"- Transient pattern：`{json.dumps(transient_summary, ensure_ascii=False)}`",
         f"- 不可观测关键输出：`{unavailable_key_outputs}`",
+        f"- 关键输出 NRMSE 超限：`{json.dumps(key_output_failures, ensure_ascii=False)}`",
         "- 所有指标按完整 held-out run 自由 rollout 计算，未随机打散窗口。",
     ])
     if stop_after == "step12":
@@ -285,7 +319,9 @@ def run_pipeline(
     _write_markdown(output_root / "reports/STEP13_ACTUATOR_MPC_GATE.md", "Step 13 Actuator / MPC 准入结论", [
         f"- 是否允许进入 actuator excitation 与 MPC：`{actuator_ready}`",
         f"- 自动门：`{json.dumps(gate_checks, ensure_ascii=False)}`",
+        f"- 门限：`{json.dumps(gate_config, ensure_ascii=False)}`",
         f"- 缺失关键输出：`{unavailable_key_outputs}`",
+        f"- 关键输出 NRMSE 超限：`{json.dumps(key_output_failures, ensure_ascii=False)}`",
         "- 当前 Dataset v1 中 MU 为固定配置，且不存在正式运行时 actuator；不会把 scheduler 输出、queue 或 MU 伪装成 u[k]。",
         "- 只有全部门通过，后续才设计可热更新 token budget、max-num-seqs 或路由比例的独立 excitation 数据集。",
     ])
