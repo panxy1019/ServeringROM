@@ -1,0 +1,20 @@
+{
+  "schema_version": "servingrom.rom_model_config.v1",
+  "chunk_size": 2048,
+  "pod_ranks": [16, 32, 48, 64, 96, 128, 192],
+  "ridge_values": [0.000001, 0.0001, 0.01, 1.0, 10.0],
+  "candidate_spectral_radius_max": 1.01,
+  "key_outputs": [
+    "completed_output_tokens",
+    "goodput_output_tokens",
+    "ttft_sum_ms",
+    "tpot_sum_ms",
+    "kv_transfer_completed_bytes",
+    "prefill_scheduled_tokens",
+    "decode_scheduled_tokens"
+  ],
+  "gate": {
+    "spectral_radius_max": 1.001
+  }
+}
+
