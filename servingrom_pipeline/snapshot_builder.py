@@ -34,6 +34,8 @@ class SnapshotConfig:
     period_ms: int = 200
     default_ttft_slo_ms: float = 2000.0
     default_tpot_slo_ms: float = 100.0
+    force_ttft_slo_ms: float | None = None
+    force_tpot_slo_ms: float | None = None
 
     @property
     def period_ns(self) -> int:
@@ -583,6 +585,20 @@ def _measurement_contract(root: Path, config: SnapshotConfig) -> tuple[SnapshotC
             default_ttft_slo_ms=float(workload.get("ttft_slo_ms", config.default_ttft_slo_ms)),
             default_tpot_slo_ms=float(workload.get("tpot_slo_ms", config.default_tpot_slo_ms)),
         )
+    if config.force_ttft_slo_ms is not None or config.force_tpot_slo_ms is not None:
+        effective = replace(
+            effective,
+            default_ttft_slo_ms=(
+                float(config.force_ttft_slo_ms)
+                if config.force_ttft_slo_ms is not None
+                else effective.default_ttft_slo_ms
+            ),
+            default_tpot_slo_ms=(
+                float(config.force_tpot_slo_ms)
+                if config.force_tpot_slo_ms is not None
+                else effective.default_tpot_slo_ms
+            ),
+        )
     if not measurement_path.exists():
         return effective, None, None
     measurement = json.loads(measurement_path.read_text(encoding="utf-8"))
@@ -595,12 +611,16 @@ def _measurement_contract(root: Path, config: SnapshotConfig) -> tuple[SnapshotC
     return effective, start, end
 
 
-def build_snapshots(run_root: Path, config: SnapshotConfig = SnapshotConfig()) -> dict[str, Any]:
+def build_snapshots(
+    run_root: Path,
+    config: SnapshotConfig = SnapshotConfig(),
+    snapshot_dir_override: Path | None = None,
+) -> dict[str, Any]:
     import numpy as np
     root = Path(run_root)
     config, measurement_start, measurement_end = _measurement_contract(root, config)
     derived = root / "derived"
-    snapshot_dir = derived / "snapshots"
+    snapshot_dir = Path(snapshot_dir_override) if snapshot_dir_override is not None else derived / "snapshots"
     snapshot_dir.mkdir(parents=True, exist_ok=True)
     requests = _request_rows(root)
     scheduler = _read_parquet(derived / "scheduler_iterations.parquet")
