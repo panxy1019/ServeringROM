@@ -40,6 +40,18 @@ def _index(path: Path) -> dict[str, int]:
     return {row["name"]: int(row["index"]) for row in json.loads(path.read_text(encoding="utf-8"))}
 
 
+def _expected_active_attempts(
+    active: float,
+    arrivals: float,
+    completed: float,
+    cancelled: float,
+    failed: float,
+    rejected: float,
+) -> float:
+    """Apply request stock-flow conservation for one snapshot window."""
+    return active + arrivals - completed - cancelled - failed - rejected
+
+
 def _raw_jsonl_quality(root: Path) -> tuple[int, list[dict[str, Any]]]:
     damaged = 0
     by_process: dict[str, list[int]] = defaultdict(list)
@@ -134,13 +146,21 @@ def validate_snapshots(run_root: Path) -> dict[str, Any]:
         fail("next_state_shift_mismatch")
 
     active_i = state_index["active_attempt_count"]
-    accepted_i = disturbance_index["accepted_arrival_count"]
+    arrival_i = disturbance_index["arrival_request_count"]
     complete_i = output_index["completed_request_count"]
     cancel_i = output_index["request_cancel_count"]
     error_i = output_index["request_error_count"]
+    reject_i = output_index["request_rejected_count"]
     inventory_failures = []
     for index in range(len(windows)):
-        expected = state[index, active_i] + disturbance[index, accepted_i] - output[index, complete_i] - output[index, cancel_i] - output[index, error_i]
+        expected = _expected_active_attempts(
+            state[index, active_i],
+            disturbance[index, arrival_i],
+            output[index, complete_i],
+            output[index, cancel_i],
+            output[index, error_i],
+            output[index, reject_i],
+        )
         actual = next_state[index, active_i]
         if actual != expected:
             inventory_failures.append({"window_id": index, "expected": float(expected), "actual": float(actual)})
