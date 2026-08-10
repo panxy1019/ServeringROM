@@ -230,8 +230,16 @@ class Pilot:
         return quality
 
     def execute_one(self, row: dict[str, Any], manifest: dict[str, Any]) -> None:
+        if row.get("status") == "FAILED" and row.get("run_id"):
+            row.setdefault("attempts", []).append({
+                key: row.get(key)
+                for key in ("run_id", "started_at", "finished_at", "error")
+            })
         run_id = f"sr-control-pilot-{row['plan_id']}-{stamp()}"
-        row.update({"run_id": run_id, "status": "RUNNING", "started_at": stamp()})
+        row.update({
+            "run_id": run_id, "status": "RUNNING", "started_at": stamp(),
+            "finished_at": None, "error": None,
+        })
         self.save(manifest)
         self.run_control("activate", run_id)
         output = f"/tmp/{run_id}-workload.json"

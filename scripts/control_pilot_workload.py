@@ -77,25 +77,39 @@ async def request_json(client: aiohttp.ClientSession, method: str, url: str, bod
 
 
 async def apply_value(client: aiohttp.ClientSession, endpoint: str, value: float, label: str):
-    status, state = await request_json(client, "GET", f"{endpoint}/servingrom/control/state")
-    if status != 200:
-        raise RuntimeError(f"control state failed: {status} {state}")
-    expected = state["effective_rho_A"] if state["control_mode"] == "controlled" else "baseline"
-    command = {
-        "control_command_id": f"{label}-{uuid.uuid4().hex[:12]}",
-        "control_generation": int(state["control_generation"]) + 1,
-        "actuator_name": ACTUATOR,
-        "requested_value": value,
-        "expected_current_value": expected,
-        "requested_wall_ns": time.time_ns(),
-    }
-    status, prepared = await request_json(client, "POST", f"{endpoint}/servingrom/control/prepare", command)
-    if status != 200 or not prepared.get("accepted"):
-        raise RuntimeError(f"control prepare failed: {status} {prepared}")
-    status, committed = await request_json(client, "POST", f"{endpoint}/servingrom/control/commit", command)
-    if status != 200 or not committed.get("accepted"):
-        raise RuntimeError(f"control commit failed: {status} {committed}")
-    return {"command": command, "prepare": prepared, "commit": committed, "observed_wall_ns": time.time_ns()}
+    # An absolute 5 s schedule can reach PREPARE a few milliseconds before the
+    # previous command's applied timestamp + minimum dwell. Retry only that
+    # explicit safety rejection; every other rejection remains fail-closed.
+    dwell_rejections = []
+    for retry in range(20):
+        status, state = await request_json(client, "GET", f"{endpoint}/servingrom/control/state")
+        if status != 200:
+            raise RuntimeError(f"control state failed: {status} {state}")
+        expected = state["effective_rho_A"] if state["control_mode"] == "controlled" else "baseline"
+        command = {
+            "control_command_id": f"{label}-r{retry:02d}-{uuid.uuid4().hex[:12]}",
+            "control_generation": int(state["control_generation"]) + 1,
+            "actuator_name": ACTUATOR,
+            "requested_value": value,
+            "expected_current_value": expected,
+            "requested_wall_ns": time.time_ns(),
+        }
+        status, prepared = await request_json(client, "POST", f"{endpoint}/servingrom/control/prepare", command)
+        if status == 409 and prepared.get("reason") == "minimum_dwell_time_not_met":
+            dwell_rejections.append(prepared)
+            await asyncio.sleep(0.1)
+            continue
+        if status != 200 or not prepared.get("accepted"):
+            raise RuntimeError(f"control prepare failed: {status} {prepared}")
+        status, committed = await request_json(client, "POST", f"{endpoint}/servingrom/control/commit", command)
+        if status != 200 or not committed.get("accepted"):
+            raise RuntimeError(f"control commit failed: {status} {committed}")
+        return {
+            "command": command, "prepare": prepared, "commit": committed,
+            "observed_wall_ns": time.time_ns(),
+            "minimum_dwell_retry_count": len(dwell_rejections),
+        }
+    raise RuntimeError(f"minimum dwell retry budget exhausted: {dwell_rejections[-1]}")
 
 
 async def rollback_baseline(client: aiohttp.ClientSession, endpoint: str, label: str):
