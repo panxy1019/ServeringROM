@@ -1,0 +1,21 @@
+{
+  "schema_version": "servingrom.rom_v2_analysis.v1",
+  "chunk_size": 2048,
+  "aggregation_factors": [1, 5, 10, 25],
+  "pod_ranks": [16, 32, 64],
+  "ridge_values": [0.01, 1.0, 10.0, 100.0],
+  "spectral_radius_max": 1.001,
+  "state_nrmse_max": 0.8,
+  "key_output_nrmse_max": 0.7,
+  "material_gain": 0.02,
+  "selection_tolerance": 0.005,
+  "key_outputs": [
+    "completed_output_tokens",
+    "goodput_output_tokens",
+    "ttft_sum_ms",
+    "tpot_sum_ms",
+    "kv_transfer_completed_bytes",
+    "prefill_scheduled_tokens",
+    "decode_scheduled_tokens"
+  ]
+}
