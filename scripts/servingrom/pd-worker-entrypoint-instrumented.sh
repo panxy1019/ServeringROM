@@ -5,6 +5,7 @@ STATE_DIR=${STATE_DIR:-/var/run/qwen36-pd}
 LOG_DIR=${LOG_DIR:-/var/log/qwen36-pd}
 MODEL_PATH=${MODEL_PATH:-/models/Qwen3.6-27B-w8a8}
 MODEL_NAME=${MODEL_NAME:-qwen36-27b-w8a8}
+PROXY_PATH=${SERVINGROM_PROXY_PATH:-/opt/qwen36-pd/pd_proxy.py}
 PHYSICAL_IDS=${PHYSICAL_IDS:-10,11,12,13,14,15}
 RAY_ADDRESS=${RAY_ADDRESS:-ray-vllm-lab-head.infra-learning.svc.cluster.local:6379}
 DECODE_AB_MODE=${DECODE_AB_MODE:-D2}
@@ -133,13 +134,25 @@ start_vllm prefill prefill "$PREFILL" 13700 kv_producer 36000 8192 16
 start_vllm decode-a decode-0 "$DECODE_A" 13701 kv_consumer 36100 4096 64
 start_vllm decode-b decode-1 "$DECODE_B" 13702 kv_consumer 36200 4096 64
 
+proxy_extra=()
+if [[ "${SERVINGROM_CONTROL_ENABLED:-false}" == "true" ]]; then
+  proxy_extra+=(
+    --servingrom-control-enabled
+    --control-min-rho-a "${SERVINGROM_CONTROL_MIN_RHO_A:-0.2}"
+    --control-max-rho-a "${SERVINGROM_CONTROL_MAX_RHO_A:-0.8}"
+    --control-max-step "${SERVINGROM_CONTROL_MAX_STEP:-0.2}"
+    --control-min-dwell-seconds "${SERVINGROM_CONTROL_MIN_DWELL_SECONDS:-5}"
+    --control-max-load-skew-tokens "${SERVINGROM_CONTROL_MAX_LOAD_SKEW_TOKENS:-2048}"
+  )
+fi
+
 nohup env SERVINGROM_TELEMETRY_ENABLED=true SERVINGROM_COMPONENT=proxy \
   SERVINGROM_OUTPUT_DIR="$SERVINGROM_RUN_ROOT/raw/proxy" \
-  python3 /opt/qwen36-pd/pd_proxy.py --host 0.0.0.0 --port 8080 \
+  python3 "$PROXY_PATH" --host 0.0.0.0 --port 8080 \
     --prefiller-hosts 127.0.0.1 --prefiller-port 13700 \
     --decoder-hosts 127.0.0.1 127.0.0.1 --decoder-ports 13701 13702 \
     --tokenizer "$MODEL_PATH" --max-prefill-inflight-tokens 8192 \
-    --decode-stream-chunk-telemetry >"$LOG_DIR/proxy.log" 2>&1 &
+    --decode-stream-chunk-telemetry "${proxy_extra[@]}" >"$LOG_DIR/proxy.log" 2>&1 &
 PROXY_PID=$!; echo "$PROXY_PID" >"$STATE_DIR/proxy.pid"
 wait_http proxy 8080 "$PROXY_PID" 120 /openapi.json
 
