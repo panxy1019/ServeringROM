@@ -124,15 +124,20 @@ def build_control_snapshots(run_root: Path) -> dict[str, Any]:
 
     output = np.load(snapshots / "output.npy")
     output_index = {row["name"]: int(row["index"]) for row in json.loads((snapshots / "output_index.json").read_text())}
+    state = np.load(snapshots / "full_state.npy")
+    state_index = {row["name"]: int(row["index"]) for row in json.loads((snapshots / "state_index.json").read_text())}
     slow_rows = []
     for start in range(0, len(control_rows), 25):
         stop = min(start + 25, len(control_rows))
         if stop - start != 25:
             raise ValueError("fast window count is not divisible by 25")
         block = output[start:stop]
+        state_block = state[start:stop]
         controls = control_rows[start:stop]
         def total(name: str) -> float:
             return float(block[:, output_index[name]].sum())
+        def state_integral(name: str) -> float:
+            return float(state_block[:, state_index[name]].sum() * 0.2)
         completed = total("completed_request_count")
         output_tokens = total("completed_output_tokens")
         good_tokens = total("goodput_output_tokens")
@@ -147,7 +152,11 @@ def build_control_snapshots(run_root: Path) -> dict[str, Any]:
         slow_rows.append({
             "slow_window_id": len(slow_rows), "fast_window_start": start, "fast_window_end": stop,
             "start_wall_ns": controls[0]["start_wall_ns"], "end_wall_ns": controls[-1]["end_wall_ns"],
+            "u_start": controls[0]["u_rho_A"],
             "target_rho_A_mean": sum(row["u_rho_A"] for row in controls) / 25,
+            "u_mean": sum(row["u_rho_A"] for row in controls) / 25,
+            "u_end": controls[-1]["u_rho_A"],
+            "delta_u": controls[-1]["u_rho_A"] - controls[0]["u_rho_A"],
             "actual_request_ratio": route_a / route_count if route_count else None,
             "actual_token_ratio": token_a / token_mass if token_mass else None,
             "completed_requests": completed, "completed_output_tokens": output_tokens,
@@ -161,6 +170,16 @@ def build_control_snapshots(run_root: Path) -> dict[str, Any]:
                 sum(remaining_a) / len(remaining_a) - sum(remaining_b) / len(remaining_b)
                 if remaining_a and remaining_b else None
             ),
+            "prefill_waiting_integral_request_seconds": state_integral("prefill_waiting_count"),
+            "decode_A_waiting_integral_request_seconds": state_integral("decode_d1_waiting_count"),
+            "decode_B_waiting_integral_request_seconds": state_integral("decode_d2_waiting_count"),
+            "decode_A_running_integral_request_seconds": state_integral("decode_d1_running_count"),
+            "decode_B_running_integral_request_seconds": state_integral("decode_d2_running_count"),
+            "decode_A_remaining_integral_token_seconds": state_integral("decode_d1_expected_remaining_tokens"),
+            "decode_B_remaining_integral_token_seconds": state_integral("decode_d2_expected_remaining_tokens"),
+            "decode_waiting_imbalance_integral_request_seconds": state_integral("decode_d1_waiting_count") - state_integral("decode_d2_waiting_count"),
+            "decode_running_imbalance_integral_request_seconds": state_integral("decode_d1_running_count") - state_integral("decode_d2_running_count"),
+            "decode_remaining_imbalance_integral_token_seconds": state_integral("decode_d1_expected_remaining_tokens") - state_integral("decode_d2_expected_remaining_tokens"),
             "kv_transfer_completed_bytes": total("kv_transfer_completed_bytes"),
             "prefill_scheduled_tokens": total("prefill_scheduled_tokens"),
             "decode_scheduled_tokens": total("decode_scheduled_tokens"),

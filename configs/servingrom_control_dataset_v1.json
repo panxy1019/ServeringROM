@@ -1,0 +1,30 @@
+{
+  "dataset_id": "servingrom-control-dataset-v1",
+  "schema_version": "servingrom.control_dataset_plan.v1",
+  "namespace": "infra-learning",
+  "deployment": "ray-vllm-pd-control-pilot-qwen36-27b",
+  "service": "qwen36-pd-control-pilot.infra-learning.svc.cluster.local",
+  "ray_namespace": "k12",
+  "ray_head_pod": "raycluster-k12-autoscale-nojudge-head-2br2m",
+  "config_id": "qwen36-1p2d-d2-full-decode-only-async-control-v1",
+  "results_root": "/home/admin/servingrom-results/servingrom-control-dataset-v1",
+  "pod_results_root": "/servingrom-results/servingrom-control-dataset-v1",
+  "dataset_root": "/servingrom-results/datasets/servingrom-control-dataset-v1",
+  "warmup_seconds": 120,
+  "measurement_seconds": 600,
+  "drain_timeout_seconds": 1200,
+  "snapshot_period_ms": 200,
+  "capacity": {"balanced": 0.5, "mixed-bimodal": 0.65},
+  "load_fractions": [0.55, 0.75, 0.92],
+  "arrival_processes": ["poisson", "on_off_burst"],
+  "on_off_burst": {"on_seconds": 10, "off_seconds": 15, "on_multiplier": 2.5},
+  "split_seeds": {"train": 101, "validation": 202, "test": 303},
+  "control_program_version": "servingrom.control_program.composite.v1",
+  "topology": {
+    "prefill_tp": 2,
+    "decode_a_tp": 2,
+    "decode_b_tp": 2,
+    "graph_mode": "FULL_DECODE_ONLY",
+    "async_scheduling": true
+  }
+}
