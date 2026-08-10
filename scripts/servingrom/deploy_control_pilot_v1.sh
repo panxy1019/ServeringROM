@@ -20,6 +20,7 @@ kubectl -n "$NAMESPACE" create configmap servingrom-entrypoint-control-pilot-v1 
 kubectl -n "$NAMESPACE" create configmap qwen36-pd-control-pilot-scripts \
   --from-file=discover_npu_mapping.py="$REPO_ROOT/scripts/discover_npu_mapping.py" \
   --from-file=servingrom_run_control.py="$REPO_ROOT/scripts/servingrom_run_control.py" \
+  --from-file=ensure_control_baseline.py="$REPO_ROOT/scripts/servingrom/ensure_control_baseline.py" \
   --dry-run=client -o yaml | kubectl apply -f -
 kubectl -n "$NAMESPACE" create configmap servingrom-control-pilot-v1-code \
   --from-file=pd_proxy.py="$REPO_ROOT/scripts/pd_proxy.py" \
