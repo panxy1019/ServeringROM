@@ -229,9 +229,10 @@ class Pilot:
         )
         return quality
 
-    def execute_one(self, row: dict[str, Any]) -> None:
+    def execute_one(self, row: dict[str, Any], manifest: dict[str, Any]) -> None:
         run_id = f"sr-control-pilot-{row['plan_id']}-{stamp()}"
         row.update({"run_id": run_id, "status": "RUNNING", "started_at": stamp()})
+        self.save(manifest)
         self.run_control("activate", run_id)
         output = f"/tmp/{run_id}-workload.json"
         try:
@@ -277,7 +278,7 @@ class Pilot:
         for row in manifest["runs"]:
             if row["status"] == "SEALED": continue
             try:
-                self.execute_one(row)
+                self.execute_one(row, manifest)
                 self.save(manifest)
             except Exception as exc:
                 row.update({"status": "FAILED", "finished_at": stamp(), "error": repr(exc)})
