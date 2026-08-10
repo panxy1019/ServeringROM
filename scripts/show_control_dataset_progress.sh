@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
-MANIFEST=${1:-/home/admin/servingrom-results/servingrom-control-dataset-v1/dataset_run_manifest.json}
+REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
+MANIFEST=${1:-$REPO_ROOT/.campaign/servingrom-control-dataset-v1/dataset_run_manifest.json}
 python3 - "$MANIFEST" <<'PY'
 import json, sys
 from pathlib import Path
