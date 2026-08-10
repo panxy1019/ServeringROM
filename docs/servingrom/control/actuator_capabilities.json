@@ -1,0 +1,56 @@
+{
+  "schema_version": "servingrom-actuator-capabilities-v1",
+  "control_version": "Control-v1",
+  "frozen_config_id": "qwen36-1p2d-d2-full-decode-only-async-v1",
+  "actuator_dimension": 1,
+  "actuators": [
+    {
+      "id": "A1",
+      "name": "decode_routing_ratio",
+      "classification": "SUPPORTED_WITH_GUARD",
+      "hot_update_supported": true,
+      "runtime_owner": "Proxy SharedProxyScheduler",
+      "effective_from": "next_decode_route",
+      "affects_existing_requests": false,
+      "requires_engine_restart": false,
+      "requires_model_reload": false,
+      "requires_graph_recapture": false,
+      "modifies_kv_manager": false,
+      "safe_range": [0.2, 0.8],
+      "maximum_step": 0.2,
+      "minimum_dwell_seconds": 5,
+      "rollback": "atomic switch to frozen baseline routing",
+      "telemetry": "actuator lifecycle events and p_to_d_route"
+    },
+    {
+      "id": "A2",
+      "name": "decode_scheduler_token_budget",
+      "classification": "DEFERRED",
+      "hot_update_supported": false,
+      "runtime_owner": "Decode EngineCore Scheduler.max_num_scheduled_tokens",
+      "reason": "The field is consumed per schedule iteration, but this release exposes no supported runtime API or cross-process ownership path. No graph/async/KV-preserving runtime proof exists."
+    },
+    {
+      "id": "A3",
+      "name": "decode_max_active_sequences",
+      "classification": "NOT_SUPPORTED",
+      "hot_update_supported": false,
+      "runtime_owner": "Decode EngineCore Scheduler.max_num_running_reqs",
+      "reason": "max-num-seqs is a startup Engine configuration coupled to scheduler capacity, KV sizing and graph capture bounds; no supported hot-update contract exists."
+    },
+    {
+      "id": "A4",
+      "name": "prefill_scheduler_token_budget",
+      "classification": "DEFERRED",
+      "hot_update_supported": false,
+      "runtime_owner": "Prefill EngineCore Scheduler.max_num_scheduled_tokens",
+      "reason": "The same private scheduler field exists, but safe update requires an EngineCore command and proof across chunking, Mooncake export and KV accounting that this release does not provide."
+    }
+  ],
+  "gates": {
+    "actuator_ready": true,
+    "control_excitation_ready": true,
+    "control_rom_ready": false,
+    "mpc_ready": false
+  }
+}

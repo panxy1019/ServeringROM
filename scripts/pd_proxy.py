@@ -140,6 +140,8 @@ from fastapi.responses import JSONResponse, Response, StreamingResponse
 from servingrom_telemetry import create_emitter
 from servingrom_telemetry.emitter import Emitter, NullEmitter
 from servingrom_telemetry.request_context import RequestTraceContext
+from servingrom_control import RoutingSafetyConfig, RuntimeControlManager
+from servingrom_control.telemetry import control_event_payload
 
 logger = logging.getLogger(__name__)
 
@@ -283,6 +285,15 @@ def emit_proxy_event(
         return False
 
 
+def emit_control_event(event_type: str, response: dict[str, Any]) -> bool:
+    """Emit a process-local control event without coupling it to a request trace."""
+    try:
+        return telemetry_emitter.emit(event_type, control_event_payload(response))
+    except Exception:
+        logger.warning("ServingROM control telemetry failed for %s", event_type, exc_info=True)
+        return False
+
+
 def normalize_host(host: str) -> str:
     return host.replace("localhost", "0.0.0.0").replace("127.0.0.1", "0.0.0.0")
 
@@ -314,7 +325,15 @@ class SharedProxyScheduler:
     not match) are skipped on pop.
     """
 
-    def __init__(self, prefiller_instances, decoder_instances, *, max_prefill_inflight_tokens: int):
+    def __init__(
+        self,
+        prefiller_instances,
+        decoder_instances,
+        *,
+        max_prefill_inflight_tokens: int,
+        control_enabled: bool = False,
+        control_safety: RoutingSafetyConfig | None = None,
+    ):
         self._lock = threading.RLock()
         self.request_num = 0
         self.prefill_inflight_tokens = 0
@@ -328,6 +347,10 @@ class SharedProxyScheduler:
         }
         self._ordinal = 0
         self._tie_cursor = {ServerRole.PREFILL: 0, ServerRole.DECODE: 0}
+        self.control = RuntimeControlManager(
+            enabled=control_enabled,
+            safety=control_safety or RoutingSafetyConfig(),
+        )
 
         for host, port in prefiller_instances:
             self._add_server_no_lock(ServerRole.PREFILL, host, port)
@@ -419,6 +442,7 @@ class SharedProxyScheduler:
 
     def healthcheck(self) -> dict[str, Any]:
         with self._lock:
+            ordered_decoders = self._ordered_decoder_keys()
             return {
                 "status": "ok",
                 "prefill_instances": len(self.prefillers),
@@ -435,7 +459,53 @@ class SharedProxyScheduler:
                     key: entry.active_requests for key, entry in self.decoders.items()
                 },
                 "decode_tie_cursor": self._tie_cursor[ServerRole.DECODE],
+                "servingrom_control": self.control.snapshot(
+                    ordered_decoders,
+                    decoders_healthy=self._decoders_healthy(),
+                ),
             }
+
+    def _ordered_decoder_keys(self) -> list[str]:
+        return [
+            key for key, _ in sorted(
+                self.decoders.items(), key=lambda item: item[1].ordinal
+            )
+        ]
+
+    def _decoders_healthy(self) -> bool:
+        return len(self.decoders) == 2 and not self._pool(ServerRole.DECODE).tainted
+
+    def control_state(self) -> dict[str, Any]:
+        with self._lock:
+            ordered = self._ordered_decoder_keys()
+            value = self.control.snapshot(ordered, decoders_healthy=self._decoders_healthy())
+            value.update({
+                "decode_A": ordered[0] if len(ordered) > 0 else None,
+                "decode_B": ordered[1] if len(ordered) > 1 else None,
+                "decode_expected_remaining_tokens": {
+                    key: int(entry.active_tokens) for key, entry in self.decoders.items()
+                },
+                "decode_active_requests": {
+                    key: entry.active_requests for key, entry in self.decoders.items()
+                },
+            })
+            return value
+
+    def prepare_control(self, command: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            return self.control.prepare(command, decoders_healthy=self._decoders_healthy())
+
+    def commit_control(self, command: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            return self.control.commit(command)
+
+    def rollback_control(self, command: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            return self.control.rollback(command)
+
+    def force_control_safety_fallback(self, reason: str) -> dict[str, Any] | None:
+        with self._lock:
+            return self.control.force_safety_fallback(reason)
 
     def _pick_fair_key(self, role: ServerRole) -> str:
         """Choose the least-loaded backend and round-robin exact ties.
@@ -535,10 +605,25 @@ class SharedProxyScheduler:
                 if key not in self._pool(ServerRole.DECODE).tainted
             }
             minimum = min(available_tokens.values())
-            tied = sorted(
-                key for key, value in available_tokens.items() if value == minimum
+            tied = sorted(key for key, value in available_tokens.items() if value == minimum)
+            ordered = self._ordered_decoder_keys()
+            controlled = self.control.choose_decoder(
+                ordered,
+                {key: entry.active_tokens for key, entry in self.decoders.items()},
+                set(self._pool(ServerRole.DECODE).tainted),
+                load,
             )
-            picked = self._pick_server(ServerRole.DECODE, load, active_tokens=True)
+            safety_fallback = None
+            if controlled is not None and controlled.get("selected") is not None:
+                key = controlled["selected"]
+                entry = self.decoders[key]
+                entry.active_tokens += load
+                self._push_heap(ServerRole.DECODE, key)
+                picked = {"key": key, "host": entry.host, "port": entry.port}
+            else:
+                if controlled is not None:
+                    safety_fallback = controlled.get("safety_fallback")
+                picked = self._pick_server(ServerRole.DECODE, load, active_tokens=True)
             self.decoders[picked["key"]].active_requests += 1
             picked["route_decision"] = {
                 "expected_remaining_tokens_before": before_tokens,
@@ -553,8 +638,28 @@ class SharedProxyScheduler:
                 "tie_cursor_after": self._tie_cursor[ServerRole.DECODE],
                 "selected_decoder": picked["key"],
                 "route_reason": (
-                    "fair_tie_round_robin" if len(tied) > 1 else "minimum_expected_remaining_tokens"
+                    controlled["route_reason"]
+                    if controlled is not None and controlled.get("selected") is not None
+                    else "fair_tie_round_robin" if len(tied) > 1
+                    else "minimum_expected_remaining_tokens"
                 ),
+                "control_mode": self.control.control_mode,
+                "control_status": self.control.control_status,
+                "control_command_id": self.control.current_command_id,
+                "control_generation": self.control.control_generation,
+                "requested_rho_A": (
+                    controlled.get("requested_rho_A") if controlled else None
+                ),
+                "effective_rho_A": (
+                    controlled.get("effective_rho_A") if controlled else None
+                ),
+                "actual_recent_request_ratio": (
+                    controlled.get("actual_recent_request_ratio") if controlled else None
+                ),
+                "actual_recent_token_ratio": (
+                    controlled.get("actual_recent_token_ratio") if controlled else None
+                ),
+                "safety_fallback": safety_fallback,
             }
             return picked
 
@@ -866,6 +971,25 @@ def parse_args() -> argparse.Namespace:
         in {"1", "true", "yes", "on"},
         help="Emit Proxy receive/yield chunk events for short validation runs.",
     )
+    parser.add_argument(
+        "--servingrom-control-enabled",
+        action=argparse.BooleanOptionalAction,
+        default=os.getenv("SERVINGROM_CONTROL_ENABLED", "false").strip().lower()
+        in {"1", "true", "yes", "on"},
+        help="Enable the fail-closed ServingROM runtime control API. Baseline routing remains the default mode.",
+    )
+    parser.add_argument("--control-min-rho-a", type=float, default=0.2)
+    parser.add_argument("--control-max-rho-a", type=float, default=0.8)
+    parser.add_argument("--control-max-step", type=float, default=0.2)
+    parser.add_argument("--control-min-dwell-seconds", type=float, default=5.0)
+    parser.add_argument("--control-max-load-skew-tokens", type=float, default=2048.0)
+    parser.add_argument(
+        "--servingrom-control-test-endpoints",
+        action=argparse.BooleanOptionalAction,
+        default=os.getenv("SERVINGROM_CONTROL_TEST_ENDPOINTS", "false").strip().lower()
+        in {"1", "true", "yes", "on"},
+        help="Expose controlled safety-fallback injection only in an isolated smoke deployment.",
+    )
     args = parser.parse_args()
     if len(args.prefiller_hosts) != len(args.prefiller_ports):
         raise ValueError("Number of prefiller hosts must match number of prefiller ports")
@@ -881,6 +1005,16 @@ def get_global_args() -> argparse.Namespace:
     if global_args is None:
         global_args = parse_args()
     return global_args
+
+
+def control_safety_from_args(args: argparse.Namespace) -> RoutingSafetyConfig:
+    return RoutingSafetyConfig(
+        minimum_rho_a=args.control_min_rho_a,
+        maximum_rho_a=args.control_max_rho_a,
+        maximum_step=args.control_max_step,
+        minimum_dwell_ns=int(args.control_min_dwell_seconds * 1_000_000_000),
+        maximum_load_skew_tokens=args.control_max_load_skew_tokens,
+    )
 
 
 def connect_shared_scheduler(proxy_port: int):
@@ -903,6 +1037,8 @@ def bootstrap_parent_process(args: argparse.Namespace) -> None:
         args.prefiller_instances,
         args.decoder_instances,
         max_prefill_inflight_tokens=args.max_prefill_inflight_tokens,
+        control_enabled=args.servingrom_control_enabled,
+        control_safety=control_safety_from_args(args),
     )
     NodeListener(shared_scheduler)
 
@@ -923,6 +1059,8 @@ def _ensure_scheduler(args) -> SharedProxyScheduler:
         args.prefiller_instances,
         args.decoder_instances,
         max_prefill_inflight_tokens=args.max_prefill_inflight_tokens,
+        control_enabled=args.servingrom_control_enabled,
+        control_safety=control_safety_from_args(args),
     )
     NodeListener(shared_scheduler)
     return shared_scheduler
@@ -985,6 +1123,64 @@ async def servingrom_telemetry_drain():
     except Exception:
         logger.warning("ServingROM telemetry drain failed", exc_info=True)
         return JSONResponse(status_code=500, content={"closed": False, "health_error": True})
+
+
+@app.get("/servingrom/control/state")
+async def servingrom_control_state():
+    return await get_runtime().schedule("control_state")
+
+
+@app.post("/servingrom/control/prepare")
+async def servingrom_control_prepare(request: Request):
+    command = await request.json()
+    emit_control_event("actuator_command_received", {
+        **command,
+        "old_value": None,
+        "effective_value": None,
+        "applied_wall_ns": None,
+        "reason": "received",
+    })
+    result = await get_runtime().schedule("prepare_control", command)
+    emit_control_event(
+        "actuator_command_validated" if result["accepted"] else "actuator_rejected",
+        result,
+    )
+    return JSONResponse(status_code=200 if result["accepted"] else 409, content=result)
+
+
+@app.post("/servingrom/control/commit")
+async def servingrom_control_commit(request: Request):
+    command = await request.json()
+    result = await get_runtime().schedule("commit_control", command)
+    emit_control_event(
+        "actuator_applied" if result["accepted"] else "actuator_rejected",
+        result,
+    )
+    return JSONResponse(status_code=200 if result["accepted"] else 409, content=result)
+
+
+@app.post("/servingrom/control/rollback")
+async def servingrom_control_rollback(request: Request):
+    command = await request.json()
+    result = await get_runtime().schedule("rollback_control", command)
+    emit_control_event(
+        "actuator_rollback" if result["accepted"] else "actuator_rejected",
+        result,
+    )
+    return JSONResponse(status_code=200 if result["accepted"] else 409, content=result)
+
+
+@app.post("/servingrom/control/test/safety-fallback")
+async def servingrom_control_test_safety_fallback(request: Request):
+    if not get_global_args().servingrom_control_test_endpoints:
+        return JSONResponse(status_code=404, content={"reason": "test_endpoint_disabled"})
+    body = await request.json()
+    reason = f"controlled_mock:{str(body.get('reason') or 'decode_unhealthy')}"
+    result = await get_runtime().schedule("force_control_safety_fallback", reason)
+    if result is None:
+        return JSONResponse(status_code=409, content={"reason": "control_not_active"})
+    emit_control_event("actuator_safety_fallback", result)
+    return result
 def create_app():
     setup_logging(get_global_args().log_level)
     return app
@@ -1260,6 +1456,12 @@ async def assign_instances(
     except Exception:
         await _abort_prefill_selection(runtime, prefiller_key, prefiller_score, is_initial_request=is_initial_request)
         raise
+
+    if decoder["route_decision"].get("safety_fallback"):
+        emit_control_event(
+            "actuator_safety_fallback",
+            decoder["route_decision"]["safety_fallback"],
+        )
 
     prefiller_client = await runtime.get_client(ServerRole.PREFILL, prefiller_key)
     decoder_client = await runtime.get_client(ServerRole.DECODE, decoder["key"])
