@@ -1,0 +1,18 @@
+{
+  "boundary_state": "X at the first 200 ms window of each super-window",
+  "disturbance": "D at the 200 ms state clock; retain exact arrival timing for state transitions",
+  "next_boundary_state": "X_next at the final 200 ms window of each super-window",
+  "output_observation_period_ms": 5000,
+  "output_observation_steps": 25,
+  "pod_rank": 16,
+  "run_boundary_policy": "never aggregate or construct history across runs",
+  "sampling_period_ms": 200,
+  "schema_version": "servingrom.state_design.v2",
+  "source_is_read_only": true,
+  "temporal_closure": [
+    "pod_state",
+    "pod_state_delta",
+    "previous_state_window_disturbance"
+  ],
+  "training_policy": "all normalization, POD and hyperparameter fitting use train only"
+}

@@ -1,0 +1,97 @@
+{
+  "aggregation": "sum event-flow counters within each non-overlapping super-window",
+  "architecture": "multi-rate: fast latent state dynamics plus a slower conservative KPI observation head",
+  "conserved_base_outputs": [
+    "completed_request_count",
+    "completed_output_tokens",
+    "completed_prompt_tokens",
+    "goodput_request_count",
+    "goodput_output_tokens",
+    "ttft_slo_violation_count",
+    "tpot_slo_violation_count",
+    "ttft_sum_ms",
+    "tpot_sum_ms",
+    "request_rejected_count",
+    "request_cancel_count",
+    "request_error_count",
+    "decode_d1_emitted_tokens",
+    "decode_d2_emitted_tokens",
+    "kv_transfer_completed_count",
+    "kv_transfer_completed_bytes",
+    "kv_transfer_failed_count",
+    "prefill_scheduled_tokens",
+    "decode_scheduled_tokens"
+  ],
+  "derived_outputs": [
+    {
+      "formula": "completed_output_tokens / period_s",
+      "kind": "rate",
+      "name": "throughput_output_tokens_per_s"
+    },
+    {
+      "formula": "goodput_output_tokens / period_s",
+      "kind": "rate",
+      "name": "goodput_output_tokens_per_s"
+    },
+    {
+      "formula": "goodput_output_tokens / completed_output_tokens",
+      "kind": "ratio",
+      "name": "goodput_token_ratio",
+      "valid_when": "completed_output_tokens > 0"
+    },
+    {
+      "formula": "completed_request_count / period_s",
+      "kind": "rate",
+      "name": "completion_rate_per_s"
+    },
+    {
+      "formula": "ttft_sum_ms / completed_request_count",
+      "kind": "conditional_mean",
+      "name": "mean_ttft_ms",
+      "valid_when": "completed_request_count > 0"
+    },
+    {
+      "formula": "tpot_sum_ms / completed_request_count",
+      "kind": "conditional_mean",
+      "limitation": "Dataset v1.1 lacks tpot_valid_count; requests without a defined TPOT were accumulated as zero",
+      "name": "mean_tpot_ms_approx",
+      "valid_when": "completed_request_count > 0"
+    },
+    {
+      "formula": "ttft_slo_violation_count / completed_request_count",
+      "kind": "ratio",
+      "name": "ttft_violation_rate",
+      "valid_when": "completed_request_count > 0"
+    },
+    {
+      "formula": "request_rejected_count / (request_rejected_count + completed_request_count)",
+      "kind": "ratio",
+      "name": "rejection_rate",
+      "valid_when": "denominator > 0"
+    },
+    {
+      "formula": "kv_transfer_completed_bytes / period_s",
+      "kind": "rate",
+      "name": "kv_transfer_bytes_per_s"
+    },
+    {
+      "formula": "prefill_scheduled_tokens / period_s",
+      "kind": "rate",
+      "name": "prefill_tokens_per_s"
+    },
+    {
+      "formula": "decode_scheduled_tokens / period_s",
+      "kind": "rate",
+      "name": "decode_tokens_per_s"
+    }
+  ],
+  "known_observability_gap": "exact mean TPOT requires tpot_valid_count, which is not present in Dataset v1/v1.1",
+  "mask_policy": "undefined conditional means and ratios carry an explicit validity mask; they are never silently filled with zero",
+  "sampling_period_ms": 5000,
+  "schema_version": "servingrom.output_design.v2",
+  "slo_policy": {
+    "tpot_slo_ms": 100.0,
+    "ttft_slo_ms": 2000.0
+  },
+  "state_sampling_period_ms": 200
+}
