@@ -52,15 +52,23 @@ def state_indices(path: Path) -> dict[str, int]:
 def slow_mean(values: np.ndarray) -> np.ndarray:
     if len(values) % SLOW_FACTOR:
         raise ValueError(f"fast window count {len(values)} is not divisible by {SLOW_FACTOR}")
-    return np.nanmean(values.reshape(-1, SLOW_FACTOR), axis=1)
+    reshaped = values.reshape(-1, SLOW_FACTOR)
+    counts = np.isfinite(reshaped).sum(axis=1)
+    totals = np.nansum(reshaped, axis=1)
+    return np.divide(
+        totals, counts, out=np.full(len(counts), np.nan, dtype=float), where=counts > 0
+    )
 
 
 def load_run(root: Path) -> dict[str, Any]:
     metadata = json.loads((root / "metadata" / "run.json").read_text())
+    workload_result = json.loads((root / "metadata" / "workload_result.json").read_text())
     quality = json.loads((root / "reports" / "control_pilot_quality.json").read_text())
+    snapshot_quality = json.loads((root / "reports" / "snapshot_data_quality.json").read_text())
     if not quality.get("valid"):
         raise ValueError(f"unsealed or invalid run: {root.name}")
     control = pq.read_table(root / "derived" / "control" / "control_windows.parquet").to_pylist()
+    slow_kpi = pq.read_table(root / "derived" / "control" / "slow_control_kpi_windows.parquet").to_pylist()
     x = np.load(root / "derived" / "snapshots" / "full_state.npy")
     index = state_indices(root / "derived" / "snapshots" / "state_index.json")
     u = np.asarray([float(row["u_rho_A"]) for row in control])
@@ -70,19 +78,24 @@ def load_run(root: Path) -> dict[str, Any]:
         "decode_expected_remaining_imbalance": x[:, index["decode_d1_expected_remaining_tokens"]] - x[:, index["decode_d2_expected_remaining_tokens"]],
         "route_request_imbalance": np.asarray([
             np.nan if row["actual_request_ratio"] is None else 2 * float(row["actual_request_ratio"]) - 1
-            for row in control
+            for row in slow_kpi
         ]),
         "route_token_imbalance": np.asarray([
             np.nan if row["actual_token_ratio"] is None else 2 * float(row["actual_token_ratio"]) - 1
-            for row in control
+            for row in slow_kpi
         ]),
     }
+    state_signals = {name: slow_mean(value) for name, value in signals.items() if name in DIRECT_SIGNALS}
+    route_signals = {name: value for name, value in signals.items() if name not in DIRECT_SIGNALS}
     return {
         "root": root,
         "metadata": metadata,
         "u_fast": u,
         "u": slow_mean(u),
-        "signals": {name: slow_mean(value) for name, value in signals.items()},
+        "signals": {**state_signals, **route_signals},
+        "slow_kpi": slow_kpi,
+        "workload_result": workload_result,
+        "snapshot_quality": snapshot_quality,
     }
 
 
@@ -93,8 +106,10 @@ def lag_analysis(u: np.ndarray, signal: np.ndarray) -> dict[str, Any]:
         value = correlation(u[: len(u) - lag or None], signal[lag:])
         rows.append({"lag_seconds": lag * 5, "correlation": value})
     available = [row for row in rows if row["correlation"] is not None]
-    best = max(available, key=lambda row: abs(row["correlation"])) if available else None
-    return {"best": best, "curve": rows}
+    strongest = max(available, key=lambda row: abs(row["correlation"])) if available else None
+    positive = [row for row in available if row["correlation"] > 0]
+    best_positive = max(positive, key=lambda row: row["correlation"]) if positive else None
+    return {"best_positive": best_positive, "strongest_absolute": strongest, "curve": rows}
 
 
 def level_analysis(u: np.ndarray, signal: np.ndarray) -> dict[str, Any]:
@@ -174,7 +189,27 @@ def analyze(runs_root: Path, manifest_path: Path) -> dict[str, Any]:
                 "level": level_analysis(run["u"], values),
                 "step": step_analysis(run["u"], values),
             }
-        run_reports.append({"run_id": run["root"].name, **run["metadata"], "signals": signals})
+        workload_summary = run["workload_result"]["summary"]
+        quality_metrics = run["snapshot_quality"]["metrics"]
+        run_reports.append({
+            "run_id": run["root"].name,
+            **run["metadata"],
+            "signals": signals,
+            "workload_summary": workload_summary,
+            "minimum_dwell_retry_count": sum(
+                int(row.get("minimum_dwell_retry_count", 0))
+                for row in run["workload_result"].get("control_schedule", [])
+            ),
+            "quality": {
+                "valid": bool(run["snapshot_quality"].get("valid")),
+                "event_seq_gap_processes": quality_metrics["event_seq_gap_processes"],
+                "jsonl_damaged_lines": quality_metrics["jsonl_damaged_lines"],
+                "writer_failure_count": quality_metrics["writer_failure_count"],
+                "request_inventory_conservation_ratio": quality_metrics["request_inventory_conservation_ratio"],
+                "stage_inventory_conservation_ratio": quality_metrics["stage_inventory_conservation_ratio"],
+                "kv_lifecycle_violation_count": quality_metrics["kv_lifecycle_violation_count"],
+            },
+        })
 
     grouped: dict[str, list[float]] = defaultdict(list)
     authority_runs = 0
@@ -206,11 +241,23 @@ def analyze(runs_root: Path, manifest_path: Path) -> dict[str, Any]:
         for run in runs
     )
     authority = authority_runs >= 8 and every_working_point
+    quality_pass = all(
+        row["quality"]["valid"]
+        and row["quality"]["event_seq_gap_processes"] == 0
+        and row["quality"]["jsonl_damaged_lines"] == 0
+        and row["quality"]["writer_failure_count"] == 0
+        and row["quality"]["request_inventory_conservation_ratio"] == 1.0
+        and row["quality"]["stage_inventory_conservation_ratio"] == 1.0
+        and row["quality"]["kv_lifecycle_violation_count"] == 0
+        and row["workload_summary"]["error_count"] == 0
+        for row in run_reports
+    )
     return {
         "schema_version": "servingrom.control_pilot_analysis.v1",
         "run_count": len(runs),
         "persistent_excitation_pass": bool(persistent),
         "control_authority_pass": bool(authority),
+        "data_quality_pass": bool(quality_pass),
         "authority_gate": {
             "definition": "positive high-minus-low and Cohen's d >= 0.25 for at least one direct Decode state signal in >=8/12 runs and >=2/3 runs at every working point",
             "passing_runs": authority_runs,
@@ -218,6 +265,16 @@ def analyze(runs_root: Path, manifest_path: Path) -> dict[str, Any]:
         },
         "run_reports": run_reports,
         "grouped_effect_sizes": dict(grouped),
+        "aggregate": {
+            "successful_requests": sum(row["workload_summary"]["success_count"] for row in run_reports),
+            "completion_tokens": sum(row["workload_summary"]["completion_tokens"] for row in run_reports),
+            "request_errors": sum(row["workload_summary"]["error_count"] for row in run_reports),
+            "minimum_dwell_retries": sum(row["minimum_dwell_retry_count"] for row in run_reports),
+            "event_seq_gap_processes": sum(row["quality"]["event_seq_gap_processes"] for row in run_reports),
+            "jsonl_damaged_lines": sum(row["quality"]["jsonl_damaged_lines"] for row in run_reports),
+            "writer_failures": sum(row["quality"]["writer_failure_count"] for row in run_reports),
+            "kv_lifecycle_violations": sum(row["quality"]["kv_lifecycle_violation_count"] for row in run_reports),
+        },
     }
 
 
@@ -230,6 +287,7 @@ def write_report(output: Path, result: dict[str, Any]) -> None:
         f"- sealed runs: `{result['run_count']}/12`",
         f"- persistent_excitation_pass: `{str(result['persistent_excitation_pass']).lower()}`",
         f"- control_authority_pass: `{str(result['control_authority_pass']).lower()}`",
+        f"- data_quality_pass: `{str(result['data_quality_pass']).lower()}`",
         f"- direct authority passing runs: `{result['authority_gate']['passing_runs']}/12`", "",
         "门控定义：" + result["authority_gate"]["definition"], "",
         "## 工作点", "",
@@ -237,13 +295,25 @@ def write_report(output: Path, result: dict[str, Any]) -> None:
     ]
     for row in result["authority_gate"]["working_points"]:
         lines.append(f"| {row['workload']} | {row['load_fraction']:.0%} | {row['runs_passed']}/{row['runs']} | {row['pass']} |")
-    lines += ["", "## Run 级响应", "", "| Run | Excitation | Direct signals | Key lag | Effect |", "|---|---|---:|---:|---:|"]
+    lines += [
+        "", "## 汇总质量", "",
+        f"- successful requests: `{result['aggregate']['successful_requests']}`",
+        f"- completion tokens: `{result['aggregate']['completion_tokens']}`",
+        f"- request errors: `{result['aggregate']['request_errors']}`",
+        f"- dwell-boundary retries: `{result['aggregate']['minimum_dwell_retries']}`",
+        f"- event-seq gaps / damaged JSONL / writer failures: `{result['aggregate']['event_seq_gap_processes']} / {result['aggregate']['jsonl_damaged_lines']} / {result['aggregate']['writer_failures']}`",
+        f"- KV lifecycle violations: `{result['aggregate']['kv_lifecycle_violations']}`",
+        "", "## Run 级响应", "",
+        "| Run | Excitation | Requests | TTFT P95 | Direct signals | Positive lag | Remaining effect |",
+        "|---|---|---:|---:|---:|---:|---:|",
+    ]
     for run in result["run_reports"]:
         key = run["signals"]["decode_expected_remaining_imbalance"]
-        best = key["lag"]["best"] or {}
+        best = key["lag"]["best_positive"] or {}
         effect = key["level"]["cohens_d"]
         lines.append(
-            f"| {run['run_id']} | {run['excitation']} | {run['direct_authority_signal_count']} | "
+            f"| {run['run_id']} | {run['excitation']} | {run['workload_summary']['success_count']} | "
+            f"{run['workload_summary']['ttft_p95_seconds']:.3f} s | {run['direct_authority_signal_count']} | "
             f"{best.get('lag_seconds', 'n/a')} s | {effect if effect is not None else 'n/a'} |"
         )
     lines += [
@@ -262,7 +332,10 @@ def main() -> int:
     args = parser.parse_args()
     result = analyze(args.runs_root, args.manifest)
     write_report(args.output, result)
-    print(json.dumps({key: result[key] for key in ("run_count", "persistent_excitation_pass", "control_authority_pass")}, indent=2))
+    print(json.dumps({
+        key: result[key]
+        for key in ("run_count", "persistent_excitation_pass", "control_authority_pass", "data_quality_pass")
+    }, indent=2))
     return 0
 
 
