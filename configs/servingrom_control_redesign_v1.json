@@ -1,0 +1,15 @@
+{
+  "schema_version": "servingrom.control-redesign.config.v1",
+  "dataset_id": "servingrom-control-dataset-v1",
+  "model_id": "servingrom-control-redesign-v1",
+  "scheme1_pod_ranks": [12, 16, 24, 32],
+  "candidate_ridges": [0.0001, 0.01, 1.0, 10.0, 100.0],
+  "chunk_size": 2048,
+  "maximum_spectral_radius": 1.01,
+  "maximum_core_diff_rollout_nrmse": 0.7,
+  "maximum_global_rollout_degradation": 0.1,
+  "maximum_slow_kpi_degradation": 0.1,
+  "minimum_control_direction_fraction": 0.6666666667,
+  "scheme2_global_ranks": [12, 16, 24, 32],
+  "scheme2_diff_ranks": [2, 4, 8, 12, 16]
+}
