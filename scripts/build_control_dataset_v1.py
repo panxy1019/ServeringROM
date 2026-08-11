@@ -78,7 +78,18 @@ def main() -> int:
         split = row["split"]
         start, stop = offsets[split], offsets[split] + 3000
         offsets[split] = stop
-        run_index.append({**{key: row[key] for key in ("plan_id", "run_id", "split", "workload", "load_fraction", "arrival_process", "arrival_seed", "control_seed")}, "row_start": start, "row_stop": stop})
+        run_index.append({
+            **{key: row[key] for key in (
+                "plan_id", "run_id", "split", "workload", "load_fraction",
+                "arrival_process", "arrival_seed",
+            )},
+            # Control seeds use the complete unsigned 64-bit SHA256-derived
+            # range. Store the audit value losslessly instead of relying on
+            # Arrow's signed int64 inference.
+            "control_seed": str(row["control_seed"]),
+            "row_start": start,
+            "row_stop": stop,
+        })
         for name, value in arrays.items():
             by_split[split][name].append(value)
         controls = pq.read_table(control / "control_windows.parquet").to_pylist()
