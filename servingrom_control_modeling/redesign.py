@@ -386,6 +386,387 @@ def _strip_runtime(value: dict[str, Any]) -> dict[str, Any]:
     return {key: item for key, item in value.items() if key not in excluded}
 
 
+def _fit_dense_pod(values: np.ndarray, max_rank: int) -> tuple[np.ndarray, np.ndarray]:
+    covariance = values.T @ values / len(values)
+    eigenvalues, vectors = np.linalg.eigh(covariance)
+    order = np.argsort(eigenvalues)[::-1]
+    eigenvalues = np.maximum(eigenvalues[order], 0.0)
+    return vectors[:, order[:max_rank]], eigenvalues
+
+
+def _scheme2_pairs(state_index: list[dict[str, Any]]) -> list[Descriptor]:
+    position = {row["name"]: int(row["index"]) for row in state_index}
+    pairs = [
+        Descriptor(name, "pair", (position[left],), (position[right],), (left, right))
+        for name, left, right in CORE_PAIRS
+    ]
+    for left in sorted(name for name in position if name.startswith("decode-0.")):
+        right = left.replace("decode-0.", "decode-1.", 1)
+        if right in position:
+            pairs.append(Descriptor(
+                left.removeprefix("decode-0.") + ".imbalance",
+                "pair", (position[left],), (position[right],), (left, right),
+            ))
+    return pairs
+
+
+def _scheme2_raw_blocks(array: np.ndarray, pairs: list[Descriptor], global_indices: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    left = np.asarray(array[:, [row.left[0] for row in pairs]], dtype=np.float64)
+    right = np.asarray(array[:, [row.right[0] for row in pairs]], dtype=np.float64)
+    return np.asarray(array[:, global_indices], dtype=np.float64), (left + right) / 2.0, (left - right) / 2.0
+
+
+def _rollout_scheme2(
+    model: DynamicModel,
+    state: np.ndarray,
+    d: np.ndarray,
+    u: np.ndarray,
+    runs: list[Any],
+    gc_rank: int,
+    diff_rank: int,
+    decode_core: Callable[[np.ndarray], np.ndarray],
+    actual_core: np.ndarray,
+) -> dict[str, Any]:
+    state_error = state_energy = base_error = 0.0
+    gc_error = gc_energy = diff_error = diff_energy = 0.0
+    core_error = np.zeros(3)
+    core_energy = np.zeros(3)
+    run_rows = []
+    for run in runs:
+        actual = state[run.start:run.end]
+        prediction = np.empty_like(actual)
+        prediction[0] = actual[0]
+        previous = actual[0].copy()
+        for offset in range(len(actual) - 1):
+            index = run.start + offset
+            d_previous = d[index - 1] if offset else d[index]
+            current = prediction[offset]
+            prediction[offset + 1] = model.predict(
+                current[None], previous[None], d[index:index + 1],
+                d_previous[None], u[index:index + 1],
+            )[0]
+            previous = current
+        error = prediction - actual
+        state_error += float(np.square(error).sum())
+        state_energy += float(np.square(actual).sum())
+        base_error += float(np.square(actual - actual[0]).sum())
+        gc_error += float(np.square(error[:, :gc_rank]).sum())
+        gc_energy += float(np.square(actual[:, :gc_rank]).sum())
+        diff_error += float(np.square(error[:, gc_rank:gc_rank + diff_rank]).sum())
+        diff_energy += float(np.square(actual[:, gc_rank:gc_rank + diff_rank]).sum())
+        predicted_core = decode_core(prediction[:, gc_rank:gc_rank + diff_rank])
+        observed_core = actual_core[run.start:run.end]
+        core_error += np.square(predicted_core - observed_core).sum(axis=0)
+        core_energy += np.square(observed_core).sum(axis=0)
+        run_rows.append({
+            "run_id": run.run_id,
+            "nrmse": math.sqrt(float(np.square(error).sum()) / max(float(np.square(actual).sum()), 1e-30)),
+        })
+    nrmse = math.sqrt(state_error / max(state_energy, 1e-30))
+    persistence = math.sqrt(base_error / max(state_energy, 1e-30))
+    return {
+        "state_nrmse": nrmse,
+        "global_pod_nrmse": math.sqrt(gc_error / max(gc_energy, 1e-30)),
+        "differential_pod_nrmse": math.sqrt(diff_error / max(diff_energy, 1e-30)),
+        "persistence_nrmse": persistence,
+        "skill": 1.0 - nrmse / max(persistence, 1e-30),
+        "descriptor_nrmse": {
+            name: math.sqrt(core_error[index] / max(core_energy[index], 1e-30))
+            for index, name in enumerate(("running_imbalance", "waiting_imbalance", "remaining_token_imbalance"))
+        },
+        "runs": run_rows,
+    }
+
+
+def _scheme2_direction(
+    model: DynamicModel,
+    state: np.ndarray,
+    d: np.ndarray,
+    u_normalizer: dict[str, Any],
+    gc_rank: int,
+    diff_rank: int,
+    decode_core: Callable[[np.ndarray], np.ndarray],
+) -> dict[str, Any]:
+    rows = np.arange(1, len(state), 20)
+    args = (state[rows], state[rows - 1], d[rows], d[rows - 1])
+    low = model.predict(*args, _scalar_transform(np.full((len(rows), 1), 0.4), u_normalizer))
+    high = model.predict(*args, _scalar_transform(np.full((len(rows), 1), 0.6), u_normalizer))
+    delta = decode_core(high[:, gc_rank:gc_rank + diff_rank]) - decode_core(low[:, gc_rank:gc_rank + diff_rank])
+    result = {}
+    passes = 0
+    for index, name in enumerate(("running_imbalance", "waiting_imbalance", "remaining_token_imbalance")):
+        fraction = float(np.mean(delta[:, index] > 0.0))
+        result[name] = {"positive_fraction": fraction, "median_high_minus_low": float(np.median(delta[:, index]))}
+        passes += fraction > 0.5
+    result["direction_pass_fraction"] = passes / 3
+    return result
+
+
+def _run_scheme2(
+    dataset_root: Path,
+    output_root: Path,
+    config: dict[str, Any],
+    dataset_audit: dict[str, Any],
+    baseline: dict[str, Any],
+    state_index: list[dict[str, Any]],
+    arrays: dict[str, dict[str, np.ndarray]],
+    x_normalizer: Any,
+    d_normalizer: Any,
+    u_normalizer: dict[str, Any],
+    runs: dict[str, list[Any]],
+    slow_rows: dict[str, list[dict[str, Any]]],
+    scheme1: list[dict[str, Any]],
+) -> dict[str, Any]:
+    pairs = _scheme2_pairs(state_index)
+    paired_indices = {index for row in pairs for index in (row.left[0], row.right[0])}
+    global_indices = np.asarray([index for index in range(len(state_index)) if index not in paired_indices], dtype=np.int64)
+    pair_manifest = {
+        "schema_version": "servingrom.common-differential-pairs.v1",
+        "pair_count": len(pairs),
+        "global_feature_count": len(global_indices),
+        "pairs": [{"name": row.name, "left": row.source_names[0], "right": row.source_names[1]} for row in pairs],
+        "global_features": [state_index[index]["name"] for index in global_indices],
+    }
+    save_json(output_root / "scheme2/feature_manifest.json", pair_manifest)
+    raw_blocks = {
+        split: _scheme2_raw_blocks(arrays[split]["X"], pairs, global_indices)
+        for split in ("train", "validation")
+    }
+    raw_next_blocks = {
+        split: _scheme2_raw_blocks(arrays[split]["X_next"], pairs, global_indices)
+        for split in ("train", "validation")
+    }
+    common_norm = _fit_scalar_normalizer(raw_blocks["train"][1], [row.name + ".common" for row in pairs])
+    diff_norm = _fit_scalar_normalizer(raw_blocks["train"][2], [row.name for row in pairs])
+    core_norm = _fit_scalar_normalizer(
+        np.column_stack([
+            np.asarray(arrays["train"]["X"][:, row.left[0]]) - np.asarray(arrays["train"]["X"][:, row.right[0]])
+            for row in pairs[:3]
+        ]),
+        [row.name for row in pairs[:3]],
+    )
+    save_json(output_root / "scheme2/global_normalization.json", {
+        "schema_version": "servingrom.scheme2-global-normalization.v1",
+        "source": "Step15 train-only full-state normalizer",
+        "indices": global_indices.tolist(),
+        "names": pair_manifest["global_features"],
+        "mean": x_normalizer.mean[global_indices].tolist(),
+        "scale": x_normalizer.scale[global_indices].tolist(),
+        "block_weight": x_normalizer.block_weight[global_indices].tolist(),
+        "log_mask": x_normalizer.log_mask[global_indices].tolist(),
+    })
+    save_json(output_root / "scheme2/common_normalization.json", common_norm)
+    save_json(output_root / "scheme2/differential_normalization.json", diff_norm)
+    save_json(output_root / "scheme2/core_imbalance_normalization.json", core_norm)
+
+    gc = {}
+    gc_next = {}
+    diff = {}
+    diff_next = {}
+    core = {}
+    for split in ("train", "validation"):
+        global_value = x_normalizer.transform(arrays[split]["X"])[:, global_indices]
+        common_value = _scalar_transform(raw_blocks[split][1], common_norm)
+        gc[split] = np.concatenate((global_value, common_value), axis=1)
+        gc_next[split] = np.concatenate((
+            x_normalizer.transform(arrays[split]["X_next"])[:, global_indices],
+            _scalar_transform(raw_next_blocks[split][1], common_norm),
+        ), axis=1)
+        diff[split] = _scalar_transform(raw_blocks[split][2], diff_norm)
+        diff_next[split] = _scalar_transform(raw_next_blocks[split][2], diff_norm)
+        core[split] = _scalar_transform(raw_blocks[split][2][:, :3] * 2.0, core_norm)
+    max_gc = max(int(value) for value in config["scheme2_global_ranks"])
+    max_diff = max(int(value) for value in config["scheme2_diff_ranks"])
+    gc_basis, gc_eigenvalues = _fit_dense_pod(gc["train"], max_gc)
+    diff_basis, diff_eigenvalues = _fit_dense_pod(diff["train"], max_diff)
+    np.save(output_root / "scheme2/global_common_basis_candidates.npy", gc_basis)
+    np.save(output_root / "scheme2/differential_basis_candidates.npy", diff_basis)
+    save_json(output_root / "scheme2/spectrum.json", {
+        "global_common_eigenvalues": gc_eigenvalues.tolist(),
+        "differential_eigenvalues": diff_eigenvalues.tolist(),
+    })
+    zgc = {split: gc[split] @ gc_basis for split in gc}
+    zgc_next = {split: gc_next[split] @ gc_basis for split in gc_next}
+    zdiff = {split: diff[split] @ diff_basis for split in diff}
+    zdiff_next = {split: diff_next[split] @ diff_basis for split in diff_next}
+    d = {split: d_normalizer.transform(arrays[split]["D"], weighted=False) for split in arrays}
+    u = {split: _scalar_transform(arrays[split]["U"], u_normalizer) for split in arrays}
+
+    candidates = []
+    runtime = []
+    global_limit = baseline["validation_rollout_nrmse"] * (1.0 + float(config["maximum_global_rollout_degradation"]))
+    slow_limit = baseline["validation_slow_kpi_nrmse"] * (1.0 + float(config["maximum_slow_kpi_degradation"]))
+    core_limit = float(config["maximum_core_diff_rollout_nrmse"])
+    direction_limit = float(config["minimum_control_direction_fraction"])
+    for gc_rank in [int(value) for value in config["scheme2_global_ranks"]]:
+        for diff_rank in [int(value) for value in config["scheme2_diff_ranks"]]:
+            state = {split: np.concatenate((zgc[split][:, :gc_rank], zdiff[split][:, :diff_rank]), axis=1) for split in zgc}
+            state_next = {split: np.concatenate((zgc_next[split][:, :gc_rank], zdiff_next[split][:, :diff_rank]), axis=1) for split in zgc_next}
+            scale = np.asarray(diff_norm["scale"])
+            mean = np.asarray(diff_norm["mean"])
+            core_mean = np.asarray(core_norm["mean"])
+            core_scale = np.asarray(core_norm["scale"])
+
+            def decode_core(value: np.ndarray, rank: int = diff_rank) -> np.ndarray:
+                normalized_diff = value @ diff_basis[:, :rank].T
+                raw_diff = normalized_diff * scale + mean
+                return (raw_diff[:, :3] * 2.0 - core_mean) / core_scale
+
+            representation_core = decode_core(zdiff["validation"][:, :diff_rank])
+            representation_nrmse = {
+                pairs[index].name: _nrmse(core["validation"][:, index:index + 1], representation_core[:, index:index + 1], np.zeros(1))
+                for index in range(3)
+            }
+            ridge_scan = []
+            winner = None
+            for ridge in [float(value) for value in config["candidate_ridges"]]:
+                model = _fit_dynamic(
+                    state["train"], state_next["train"], d["train"], u["train"],
+                    runs["train"], ridge, bilinear=False,
+                )
+                radius = model.spectral_radius()
+                row = {
+                    "ridge": ridge, "spectral_radius": radius,
+                    "validation_one_step_nrmse": _one_step(
+                        model, state["validation"], state_next["validation"],
+                        d["validation"], u["validation"], runs["validation"],
+                    ),
+                    "stable": radius <= float(config["maximum_spectral_radius"]),
+                }
+                ridge_scan.append(row)
+                if row["stable"] and (winner is None or row["validation_one_step_nrmse"] < winner[0]["validation_one_step_nrmse"]):
+                    winner = (row, model)
+            if winner is None:
+                continue
+            winner_row, model = winner
+            rollout = _rollout_scheme2(
+                model, state["validation"], d["validation"], u["validation"],
+                runs["validation"], gc_rank, diff_rank, decode_core, core["validation"],
+            )
+            direction = _scheme2_direction(
+                model, state["validation"], d["validation"], u_normalizer,
+                gc_rank, diff_rank, decode_core,
+            )
+            slow_row, slow_theta, slow_meta = _fit_slow_for_candidate(
+                state["train"], state["validation"], d["train"], d["validation"],
+                u["train"], u["validation"], runs["train"], runs["validation"],
+                slow_rows["train"], slow_rows["validation"],
+                [float(value) for value in config["candidate_ridges"]],
+            )
+            gate = {
+                "running": rollout["descriptor_nrmse"]["running_imbalance"] < core_limit,
+                "waiting": rollout["descriptor_nrmse"]["waiting_imbalance"] < core_limit,
+                "remaining": rollout["descriptor_nrmse"]["remaining_token_imbalance"] < core_limit,
+                "representation": all(value < core_limit for value in representation_nrmse.values()),
+                "global_rollout": rollout["global_pod_nrmse"] <= global_limit,
+                "slow_kpi": slow_row["validation_nrmse"] <= slow_limit,
+                "direction": direction["direction_pass_fraction"] >= direction_limit,
+            }
+            row = {
+                "scheme": "scheme2_common_differential_block_pod",
+                "candidate": f"gc{gc_rank}-diff{diff_rank}",
+                "global_common_rank": gc_rank,
+                "differential_rank": diff_rank,
+                "pod_rank": gc_rank,
+                "descriptor_count": diff_rank,
+                "reduced_dimension": gc_rank + diff_rank,
+                "ridge": winner_row["ridge"],
+                "spectral_radius": winner_row["spectral_radius"],
+                "validation_one_step_nrmse": winner_row["validation_one_step_nrmse"],
+                "validation_representation_core_nrmse": representation_nrmse,
+                "validation_rollout": rollout,
+                "validation_control_direction": direction,
+                "validation_slow_kpi_nrmse": slow_row["validation_nrmse"],
+                "slow_ridge": slow_row["ridge"],
+                "validation_gate": gate,
+                "ridge_scan": ridge_scan,
+            }
+            candidates.append(row)
+            runtime.append((row, model, slow_theta, slow_meta, state, state_next, decode_core))
+    save_json(output_root / "scheme2/rank_grid.json", candidates)
+    passing = [row for row in runtime if all(row[0]["validation_gate"].values())]
+    if not passing:
+        result = {
+            "schema_version": "servingrom.control-redesign.result.v1",
+            "dataset": dataset_audit,
+            "baseline": baseline,
+            "scheme1_ablation": [_strip_runtime(row) for row in scheme1],
+            "scheme2_ablation": candidates,
+            "readiness": {"control_representation_ready": False, "control_rom_ready": False},
+            "data_isolation": {"heldout_actuator_data_read": False, "test_accessed": False, "mpc_implemented": False},
+        }
+        save_json(output_root / "evaluation/final_metrics.json", result)
+        return result
+    selected_row, model, slow_theta, slow_meta, selected_state, selected_state_next, decode_core = min(
+        passing,
+        key=lambda value: (
+            value[0]["reduced_dimension"],
+            np.mean(list(value[0]["validation_rollout"]["descriptor_nrmse"].values())),
+            value[0]["validation_rollout"]["global_pod_nrmse"],
+        ),
+    )
+    frozen = {
+        "scheme": selected_row["scheme"], "candidate": selected_row["candidate"],
+        "pod_rank": selected_row["global_common_rank"], "descriptor_count": selected_row["differential_rank"],
+        "reduced_dimension": selected_row["reduced_dimension"], "dynamics_ridge": selected_row["ridge"],
+        "slow_ridge": selected_row["slow_ridge"], "selection_split": "validation", "test_accessed": False,
+    }
+    save_json(output_root / "FROZEN_SELECTION_BEFORE_TEST.json", frozen)
+
+    test_arrays = _load_split(dataset_root, "test")
+    test_blocks = _scheme2_raw_blocks(test_arrays["X"], pairs, global_indices)
+    test_next_blocks = _scheme2_raw_blocks(test_arrays["X_next"], pairs, global_indices)
+    gc_test = np.concatenate((x_normalizer.transform(test_arrays["X"])[:, global_indices], _scalar_transform(test_blocks[1], common_norm)), axis=1)
+    gc_test_next = np.concatenate((x_normalizer.transform(test_arrays["X_next"])[:, global_indices], _scalar_transform(test_next_blocks[1], common_norm)), axis=1)
+    diff_test = _scalar_transform(test_blocks[2], diff_norm)
+    diff_test_next = _scalar_transform(test_next_blocks[2], diff_norm)
+    gc_rank = selected_row["global_common_rank"]
+    diff_rank = selected_row["differential_rank"]
+    state_test = np.concatenate((gc_test @ gc_basis[:, :gc_rank], diff_test @ diff_basis[:, :diff_rank]), axis=1)
+    state_test_next = np.concatenate((gc_test_next @ gc_basis[:, :gc_rank], diff_test_next @ diff_basis[:, :diff_rank]), axis=1)
+    d_test = d_normalizer.transform(test_arrays["D"], weighted=False)
+    u_test = _scalar_transform(test_arrays["U"], u_normalizer)
+    core_test = _scalar_transform(test_blocks[2][:, :3] * 2.0, core_norm)
+    test_rollout = _rollout_scheme2(model, state_test, d_test, u_test, runs["test"], gc_rank, diff_rank, decode_core, core_test)
+    test_direction = _scheme2_direction(model, state_test, d_test, u_normalizer, gc_rank, diff_rank, decode_core)
+    test_slow_rows = pq.read_table(dataset_root / "slow_kpi_windows.parquet", filters=[("split", "=", "test")]).to_pylist()
+    test_slow = _build_slow(test_slow_rows, runs["test"], state_test, d_test, u_test)
+    test_y = _scalar_transform(test_slow[3], slow_meta["normalizer"])
+    test_slow_nrmse = _nrmse(test_y, _predict_slow(slow_theta, *test_slow[:3]), np.zeros(len(SLOW_OUTPUTS)))
+    final = {
+        **frozen, "spectral_radius": selected_row["spectral_radius"], "validation": selected_row,
+        "test": {"rollout": test_rollout, "control_direction": test_direction, "slow_kpi_nrmse": test_slow_nrmse},
+    }
+    test_core = test_rollout["descriptor_nrmse"]
+    test_pass = all(value < core_limit for value in test_core.values()) and test_direction["direction_pass_fraction"] >= direction_limit
+    readiness = {
+        "control_representation_ready": test_pass,
+        "control_rom_ready": test_pass and test_slow_nrmse <= slow_limit and selected_row["spectral_radius"] <= float(config["maximum_spectral_radius"]),
+    }
+    result = {
+        "schema_version": "servingrom.control-redesign.result.v1", "dataset": dataset_audit, "baseline": baseline,
+        "scheme1_ablation": [_strip_runtime(row) for row in scheme1], "scheme2_ablation": candidates,
+        "scheme2_executed": True, "final": final, "readiness": readiness,
+        "data_isolation": {"heldout_actuator_data_read": False, "test_accessed_after_freeze": True, "mpc_implemented": False},
+    }
+    np.save(output_root / "scheme2/final_global_common_basis.npy", gc_basis[:, :gc_rank])
+    np.save(output_root / "scheme2/final_differential_basis.npy", diff_basis[:, :diff_rank])
+    _save_model(output_root / "models/final_control_dynamics.npz", model)
+    np.savez_compressed(output_root / "models/final_slow_kpi_head.npz", theta=slow_theta, outputs=np.asarray(SLOW_OUTPUTS), ridge=selected_row["slow_ridge"])
+    save_json(output_root / "evaluation/final_metrics.json", result)
+    _write_report(output_root, result)
+    manifest = {
+        "model_id": config["model_id"], "dataset_sha256_manifest": dataset_audit["sha256_manifest"],
+        "baseline_manifest_sha256": baseline["manifest_sha256"], "selection": frozen,
+        "readiness": readiness, "artifacts": {},
+    }
+    for path in sorted(output_root.rglob("*")):
+        if path.is_file() and path.name not in {"SHA256_MANIFEST.json", "step15b.log", "step15b.pid"}:
+            manifest["artifacts"][str(path.relative_to(output_root))] = _sha256(path)
+    save_json(output_root / "SHA256_MANIFEST.json", manifest)
+    return result
+
+
 def _write_report(output: Path, result: dict[str, Any]) -> None:
     final = result["final"]
     lines = [
@@ -517,18 +898,18 @@ def run_redesign_pipeline(
         if all(row["validation_gate"].values()):
             passing.append(row)
     if not passing:
-        # Scheme 2 must be implemented and executed rather than silently relaxing Scheme 1 gates.
-        result = {
-            "schema_version": "servingrom.control-redesign.result.v1",
-            "dataset": dataset_audit,
-            "baseline": baseline,
+        scheme1_result = {
+            "schema_version": "servingrom.control-redesign.scheme1-gate.v1",
+            "dataset": dataset_audit, "baseline": baseline,
             "scheme1_ablation": [_strip_runtime(row) for row in scheme1],
             "scheme2_required": True,
-            "readiness": {"control_representation_ready": False, "control_rom_ready": False},
             "data_isolation": {"heldout_actuator_data_read": False, "test_accessed": False, "mpc_implemented": False},
         }
-        save_json(output_root / "SCHEME1_GATE_RESULT.json", result)
-        raise RuntimeError("Scheme 1 did not pass; Scheme 2 implementation is required")
+        save_json(output_root / "SCHEME1_GATE_RESULT.json", scheme1_result)
+        return _run_scheme2(
+            dataset_root, output_root, config, dataset_audit, baseline, state_index,
+            arrays, x_normalizer, d_normalizer, u_normalizer, runs, slow_rows, scheme1,
+        )
 
     selected = min(
         passing,
