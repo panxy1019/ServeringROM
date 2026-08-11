@@ -1,0 +1,33 @@
+{
+  "benchmark_id": "servingrom-control-heldout-v1",
+  "schema_version": "servingrom.control_heldout_plan.v1",
+  "namespace": "infra-learning",
+  "deployment": "ray-vllm-pd-control-pilot-qwen36-27b",
+  "service": "qwen36-pd-control-pilot.infra-learning.svc.cluster.local",
+  "ray_namespace": "k12",
+  "ray_head_pod": "raycluster-k12-autoscale-nojudge-head-2br2m",
+  "config_id": "qwen36-1p2d-d2-full-decode-only-async-control-v1",
+  "results_root": "/home/admin/servingrom-results/servingrom-control-heldout-v1",
+  "pod_results_root": "/servingrom-results/servingrom-control-heldout-v1",
+  "benchmark_root": "/home/admin/servingrom-results/datasets/servingrom-control-heldout-v1",
+  "frozen_training_dataset": "/home/admin/servingrom-results/datasets/servingrom-control-dataset-v1",
+  "warmup_seconds": 120,
+  "measurement_seconds": 600,
+  "drain_timeout_seconds": 1200,
+  "snapshot_period_ms": 200,
+  "arrival_process": "poisson",
+  "capacity": {"balanced": 0.5, "mixed-bimodal": 0.65},
+  "load_fractions": [0.75, 0.92],
+  "core_trajectories": ["interpolation", "unseen-composite"],
+  "robustness_trajectories": ["slow-ramp", "boundary-near"],
+  "arrival_seed_base": 143000,
+  "trajectory_program_version": "servingrom.control_heldout_trajectory.v1",
+  "split": "test/control-heldout",
+  "topology": {
+    "prefill_tp": 2,
+    "decode_a_tp": 2,
+    "decode_b_tp": 2,
+    "graph_mode": "FULL_DECODE_ONLY",
+    "async_scheduling": true
+  }
+}
