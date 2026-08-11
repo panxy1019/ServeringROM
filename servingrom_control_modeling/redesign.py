@@ -808,6 +808,7 @@ def _write_report(output: Path, result: dict[str, Any]) -> None:
         f"- 冻结表示：`{final['scheme']}` / `{final['candidate']}`",
         f"- reduced state：global/common rank {final['pod_rank']} + differential coordinates {final['descriptor_count']} = {final['reduced_dimension']}",
         "- Round 14.3 held-out actuator 数据未读取；未实现 MPC。",
+        f"- validation dynamics gate：`{final.get('validation_dynamics_gate_passed')}`；诊断 dynamics 不作为可部署模型。",
         "",
         "## 三方对照",
         "",
@@ -838,6 +839,12 @@ def _write_report(output: Path, result: dict[str, Any]) -> None:
             f"{row['validation_slow_kpi_nrmse']:.6f} | {row['spectral_radius']:.6f} |"
         )
     lines += [
+        "",
+        "## 表示重构与动力学的分界",
+        "",
+        f"- Scheme 2 validation static core NRMSE：`{json.dumps(final['validation'].get('validation_representation_core_nrmse', {}), ensure_ascii=False)}`",
+        "- Scheme 1 的 explicit q 坐标在表示层严格可逆，但其自由 rollout 未通过；Scheme 2 用独立 differential rank budget 在不显式携带全部 q 的情况下通过静态表示门。",
+        "- `control_representation_ready` 只陈述 reduced coordinate 对控制状态的可观测性；`control_rom_ready` 还要求动态 rollout、global degradation 和控制方向同时通过。",
         "",
         "## Test（冻结后单次访问）",
         "",
@@ -908,6 +915,14 @@ def run_redesign_pipeline(
 
     scheme1 = []
     for candidate_name in descriptor_data["candidate_order"]:
+        candidate_train_raw = _extract_descriptors(arrays["train"]["X"], descriptors[candidate_name])
+        save_json(
+            output_root / f"scheme1/{candidate_name}_normalization.json",
+            _fit_scalar_normalizer(
+                candidate_train_raw,
+                [descriptor.name for descriptor in descriptors[candidate_name]],
+            ),
+        )
         for rank in ranks:
             scheme1.append(_scheme1_candidate(
                 candidate_name, descriptors[candidate_name], rank, arrays, z, z_next, d, u,
