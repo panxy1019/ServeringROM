@@ -1,0 +1,15 @@
+{
+  "horizon_seconds": 1.0,
+  "horizon_steps": 5,
+  "kind": "exponential",
+  "memory_dim": 6,
+  "ridge": 10.0,
+  "scales_steps": [
+    5
+  ],
+  "selection_split": "validation",
+  "slow_ridge": 1.0,
+  "spectral_radius": 0.947826622482653,
+  "test_accessed": false,
+  "validation_strong_gate_passed": false
+}

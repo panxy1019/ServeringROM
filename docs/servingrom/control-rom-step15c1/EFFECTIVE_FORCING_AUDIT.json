@@ -1,0 +1,20 @@
+{
+  "alignment": "200 ms half-open [start_wall_ns,end_wall_ns); route event selected by ts_wall_ns",
+  "effective_forcing_available": true,
+  "fields": {
+    "routed_expected_token_mass_imbalance": "2*routed_A_expected_token_mass-routed_expected_token_mass",
+    "routed_request_imbalance": "2*routed_A_request_count-routed_request_count"
+  },
+  "next_schema": {
+    "names": [
+      "routed_request_imbalance",
+      "routed_expected_token_mass_imbalance"
+    ],
+    "role": "effective routing forcing for Step 15C-2",
+    "window_seconds": 0.2
+  },
+  "source": "sealed run derived/control/control_windows.parquet",
+  "source_event": "p_to_d_route",
+  "token_semantics": "expected_output_tokens captured at p_to_d_route; not active remaining-token inventory",
+  "used_by_step15c1_model": false
+}

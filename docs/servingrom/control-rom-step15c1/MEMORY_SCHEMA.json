@@ -1,0 +1,19 @@
+{
+  "dt_seconds": 0.2,
+  "frozen_state": "gc12-diff2",
+  "representations": {
+    "exponential": "causal EWMA per tau",
+    "multi_scale": "mean, integral, change per scale",
+    "raw_lag": "all past signal samples"
+  },
+  "run_boundary_policy": "history is initialized independently per complete run; no cross-run rows",
+  "schema_version": "servingrom.control-memory-schema.v1",
+  "signal_order": [
+    "z_diff_0",
+    "z_diff_1",
+    "rho_A",
+    "accepted_arrival_count",
+    "arrival_prompt_token_mass",
+    "arrival_requested_output_token_mass"
+  ]
+}
