@@ -353,9 +353,11 @@ def _write_report(output: Path, result: dict[str, Any]) -> None:
         "", "## 结论", "",
         f"- `memory_dynamics_ready={str(result['memory_dynamics_ready']).lower()}`",
         f"- `effective_memory_horizon={result['effective_memory_horizon']}`",
+        f"- 诊断候选 horizon：`{result['diagnostic_candidate_horizon_seconds']}s`",
         f"- `effective_forcing_available={str(result['forcing_audit']['effective_forcing_available']).lower()}`",
         f"- 冻结候选：`{final['kind']}`，horizon={final['horizon_seconds']}s，ridge={final['ridge']}。",
         "- representation 固定为 `gc12-diff2`；未读取 held-out、未启动 1P2D、未实现 MPC。",
+        "- 未达到 strong gate，因此该候选仅作为失败诊断产物，不是可部署 Control-ROM。",
         "", "## Validation Ablation", "",
         "| kind | horizon(s) | dim | running | waiting | remaining | global | slow KPI | radius |",
         "|---|---:|---:|---:|---:|---:|---:|---:|---:|",
@@ -374,6 +376,11 @@ def _write_report(output: Path, result: dict[str, Any]) -> None:
         f"- Slow KPI NRMSE：`{test['slow_kpi_nrmse']:.6f}`",
         f"- control-direction pass fraction：`{test['control_direction']['direction_pass_fraction']:.6f}`",
         f"- augmented spectral radius：`{final['spectral_radius']:.6f}`",
+        "", "## 失败归因", "",
+        "- 一步预测约为 0.4，但自由 rollout 仍约为 0.97，误差主要在递推中持续累积。",
+        "- 1--20s memory 对 running/remaining-token imbalance 的收益很小，有限记忆不是当前主导瓶颈。",
+        "- global state 与 Slow KPI 有一定改善，说明历史对总负载有信息，但没有恢复路由产生的 A/B 有效注入。",
+        "- 下一步应使用已经存在的 routed request/token-mass imbalance 做显式 forcing；本轮按约束没有进入 Step 15C-2。",
         "", "## Effective Forcing Audit", "",
         f"- 来源：`{result['forcing_audit']['source']}`",
         f"- 对齐：{result['forcing_audit']['alignment']}",
@@ -459,7 +466,7 @@ def run_memory_pipeline(dataset_root: Path, representation_root: Path, output_ro
             "stable": row["spectral_radius"] <= float(config["maximum_spectral_radius"]),
             "global": row["validation_rollout"]["global_nrmse"] <= baseline["validation_rollout"]["global_nrmse"]*(1+float(config["maximum_global_rollout_degradation"])),
             "slow": row["validation_slow_kpi_nrmse"] <= baseline["validation_slow_kpi_nrmse"]*(1+float(config["maximum_slow_kpi_degradation"])),
-            "direction": row["validation_control_direction"]["direction_pass_fraction"] >= float(config["minimum_control_direction_fraction"]),
+            "direction": row["validation_control_direction"]["direction_pass_fraction"] + 1e-12 >= float(config["minimum_control_direction_fraction"]),
         }
         row["validation_gates"] = gates
         if all(gates.values()): strong.append(row)
@@ -487,12 +494,13 @@ def run_memory_pipeline(dataset_root: Path, representation_root: Path, output_ro
         bool(strong)
         and test_core_metric["running_imbalance"] < float(config["strong_core_rollout_nrmse"])
         and test_core_metric["remaining_token_imbalance"] < float(config["strong_core_rollout_nrmse"])
-        and test_direction["direction_pass_fraction"] >= float(config["minimum_control_direction_fraction"])
+        and test_direction["direction_pass_fraction"] + 1e-12 >= float(config["minimum_control_direction_fraction"])
         and test_roll["global_nrmse"] <= baseline["validation_rollout"]["global_nrmse"] * (1 + float(config["maximum_global_rollout_degradation"]))
         and test_slow_score <= baseline["validation_slow_kpi_nrmse"] * (1 + float(config["maximum_slow_kpi_degradation"]))
     )
     final={**frozen_selection,"validation":{k:v for k,v in selected.items() if k not in {"model","memory","slow_theta","slow_normalizer"}},"test":{"one_step":test_one,"rollout":test_roll,"control_direction":test_direction,"slow_kpi_nrmse":test_slow_score}}
-    result={"schema_version":"servingrom.control-memory.result.v1","dataset":dataset_audit,"frozen_representation":config["frozen_representation"],"ablation":clean,"final":final,"memory_dynamics_ready":memory_ready,"effective_memory_horizon":selected["horizon_seconds"],"forcing_audit":forcing,"data_isolation":{"heldout_actuator_data_read":False,"test_accessed_after_freeze":True,"new_runs_collected":False,"mpc_implemented":False}}
+    final["test_accessed"] = True
+    result={"schema_version":"servingrom.control-memory.result.v1","dataset":dataset_audit,"frozen_representation":config["frozen_representation"],"ablation":clean,"final":final,"memory_dynamics_ready":memory_ready,"effective_memory_horizon":selected["horizon_seconds"] if memory_ready else None,"diagnostic_candidate_horizon_seconds":selected["horizon_seconds"],"forcing_audit":forcing,"data_isolation":{"heldout_actuator_data_read":False,"test_accessed_after_freeze":True,"new_runs_collected":False,"mpc_implemented":False}}
     save_json(output_root/"evaluation/final_metrics.json",result); _save_model(output_root/("models/final_memory_dynamics.npz" if memory_ready else "models/diagnostic_not_ready_memory_dynamics.npz"),selected["model"])
     np.savez_compressed(output_root/("models/final_slow_kpi_head.npz" if memory_ready else "models/diagnostic_not_ready_slow_kpi_head.npz"),theta=selected["slow_theta"],ridge=selected["slow_ridge"],outputs=np.asarray(SLOW_OUTPUTS))
     _write_report(output_root,result)
