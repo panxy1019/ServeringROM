@@ -1,0 +1,18 @@
+{
+  "schema_version": "servingrom.control-rom.config.v1",
+  "dataset_id": "servingrom-control-dataset-v1",
+  "model_id": "servingrom-control-rom-v1",
+  "candidate_ranks": [16, 32, 48, 64],
+  "candidate_ridges": [1e-06, 0.0001, 0.01, 1.0, 10.0, 100.0],
+  "chunk_size": 2048,
+  "bilinear_min_validation_improvement": 0.05,
+  "maximum_spectral_radius": 1.01,
+  "maximum_bilinear_radius_increase": 0.01,
+  "readiness_gates": {
+    "require_validation_rollout_skill_positive": true,
+    "require_test_rollout_skill_positive": true,
+    "maximum_validation_slow_kpi_nrmse": 1.0,
+    "maximum_test_slow_kpi_nrmse": 1.0,
+    "minimum_control_direction_fraction": 0.6666666667
+  }
+}
