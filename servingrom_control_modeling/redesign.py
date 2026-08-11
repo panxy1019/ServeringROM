@@ -685,7 +685,11 @@ def _run_scheme2(
             runtime.append((row, model, slow_theta, slow_meta, state, state_next, decode_core))
     save_json(output_root / "scheme2/rank_grid.json", candidates)
     passing = [row for row in runtime if all(row[0]["validation_gate"].values())]
-    if not passing:
+    representation_passing = [
+        row for row in runtime
+        if all(value < core_limit for value in row[0]["validation_representation_core_nrmse"].values())
+    ]
+    if not passing and not representation_passing:
         result = {
             "schema_version": "servingrom.control-redesign.result.v1",
             "dataset": dataset_audit,
@@ -697,11 +701,12 @@ def _run_scheme2(
         }
         save_json(output_root / "evaluation/final_metrics.json", result)
         return result
+    selection_pool = passing if passing else representation_passing
     selected_row, model, slow_theta, slow_meta, selected_state, selected_state_next, decode_core = min(
-        passing,
+        selection_pool,
         key=lambda value: (
             value[0]["reduced_dimension"],
-            np.mean(list(value[0]["validation_rollout"]["descriptor_nrmse"].values())),
+            np.mean(list(value[0]["validation_representation_core_nrmse"].values())),
             value[0]["validation_rollout"]["global_pod_nrmse"],
         ),
     )
@@ -710,6 +715,7 @@ def _run_scheme2(
         "pod_rank": selected_row["global_common_rank"], "descriptor_count": selected_row["differential_rank"],
         "reduced_dimension": selected_row["reduced_dimension"], "dynamics_ridge": selected_row["ridge"],
         "slow_ridge": selected_row["slow_ridge"], "selection_split": "validation", "test_accessed": False,
+        "validation_dynamics_gate_passed": bool(passing),
     }
     save_json(output_root / "FROZEN_SELECTION_BEFORE_TEST.json", frozen)
 
@@ -727,6 +733,13 @@ def _run_scheme2(
     d_test = d_normalizer.transform(test_arrays["D"], weighted=False)
     u_test = _scalar_transform(test_arrays["U"], u_normalizer)
     core_test = _scalar_transform(test_blocks[2][:, :3] * 2.0, core_norm)
+    representation_core_test = decode_core(diff_test @ diff_basis[:, :diff_rank])
+    representation_core_nrmse = {
+        pairs[index].name: _nrmse(
+            core_test[:, index:index + 1], representation_core_test[:, index:index + 1], np.zeros(1),
+        )
+        for index in range(3)
+    }
     test_rollout = _rollout_scheme2(model, state_test, d_test, u_test, runs["test"], gc_rank, diff_rank, decode_core, core_test)
     test_direction = _scheme2_direction(model, state_test, d_test, u_normalizer, gc_rank, diff_rank, decode_core)
     test_slow_rows = pq.read_table(dataset_root / "slow_kpi_windows.parquet", filters=[("split", "=", "test")]).to_pylist()
@@ -735,12 +748,24 @@ def _run_scheme2(
     test_slow_nrmse = _nrmse(test_y, _predict_slow(slow_theta, *test_slow[:3]), np.zeros(len(SLOW_OUTPUTS)))
     final = {
         **frozen, "spectral_radius": selected_row["spectral_radius"], "validation": selected_row,
-        "test": {"rollout": test_rollout, "control_direction": test_direction, "slow_kpi_nrmse": test_slow_nrmse},
+        "test": {
+            "representation_core_nrmse": representation_core_nrmse,
+            "rollout": test_rollout, "control_direction": test_direction,
+            "slow_kpi_nrmse": test_slow_nrmse,
+        },
     }
     test_core = test_rollout["descriptor_nrmse"]
-    test_pass = all(value < core_limit for value in test_core.values()) and test_direction["direction_pass_fraction"] >= direction_limit
+    representation_ready = (
+        all(value < core_limit for value in selected_row["validation_representation_core_nrmse"].values())
+        and all(value < core_limit for value in representation_core_nrmse.values())
+    )
+    test_pass = (
+        bool(passing)
+        and all(value < core_limit for value in test_core.values())
+        and test_direction["direction_pass_fraction"] >= direction_limit
+    )
     readiness = {
-        "control_representation_ready": test_pass,
+        "control_representation_ready": representation_ready,
         "control_rom_ready": test_pass and test_slow_nrmse <= slow_limit and selected_row["spectral_radius"] <= float(config["maximum_spectral_radius"]),
     }
     result = {
@@ -751,8 +776,12 @@ def _run_scheme2(
     }
     np.save(output_root / "scheme2/final_global_common_basis.npy", gc_basis[:, :gc_rank])
     np.save(output_root / "scheme2/final_differential_basis.npy", diff_basis[:, :diff_rank])
-    _save_model(output_root / "models/final_control_dynamics.npz", model)
-    np.savez_compressed(output_root / "models/final_slow_kpi_head.npz", theta=slow_theta, outputs=np.asarray(SLOW_OUTPUTS), ridge=selected_row["slow_ridge"])
+    model_prefix = "final" if readiness["control_rom_ready"] else "diagnostic_not_ready"
+    _save_model(output_root / f"models/{model_prefix}_control_dynamics.npz", model)
+    np.savez_compressed(
+        output_root / f"models/{model_prefix}_slow_kpi_head.npz",
+        theta=slow_theta, outputs=np.asarray(SLOW_OUTPUTS), ridge=selected_row["slow_ridge"],
+    )
     save_json(output_root / "evaluation/final_metrics.json", result)
     _write_report(output_root, result)
     manifest = {
@@ -776,8 +805,8 @@ def _write_report(output: Path, result: dict[str, Any]) -> None:
         "",
         f"- `control_representation_ready={str(result['readiness']['control_representation_ready']).lower()}`",
         f"- `control_rom_ready={str(result['readiness']['control_rom_ready']).lower()}`",
-        f"- 最终方案：`{final['scheme']}` / `{final['candidate']}`",
-        f"- reduced state：POD rank {final['pod_rank']} + {final['descriptor_count']} explicit differential coordinates = {final['reduced_dimension']}",
+        f"- 冻结表示：`{final['scheme']}` / `{final['candidate']}`",
+        f"- reduced state：global/common rank {final['pod_rank']} + differential coordinates {final['descriptor_count']} = {final['reduced_dimension']}",
         "- Round 14.3 held-out actuator 数据未读取；未实现 MPC。",
         "",
         "## 三方对照",
@@ -799,6 +828,15 @@ def _write_report(output: Path, result: dict[str, Any]) -> None:
             f"{descriptor.get('remaining_token_imbalance', math.nan):.6f} | "
             f"{row.get('validation_slow_kpi_nrmse', math.nan):.6f} | {row.get('spectral_radius', math.nan):.6f} |"
         )
+    if result.get("scheme2_ablation"):
+        row = final["validation"]
+        descriptor = row["validation_rollout"]["descriptor_nrmse"]
+        lines.append(
+            f"| Scheme2 {row['candidate']} | {row['reduced_dimension']} | "
+            f"{row['validation_rollout']['global_pod_nrmse']:.6f} | "
+            f"{descriptor['running_imbalance']:.6f} | {descriptor['remaining_token_imbalance']:.6f} | "
+            f"{row['validation_slow_kpi_nrmse']:.6f} | {row['spectral_radius']:.6f} |"
+        )
     lines += [
         "",
         "## Test（冻结后单次访问）",
@@ -808,10 +846,11 @@ def _write_report(output: Path, result: dict[str, Any]) -> None:
         f"- waiting imbalance rollout NRMSE：`{final['test']['rollout']['descriptor_nrmse']['waiting_imbalance']:.6f}`",
         f"- remaining-token imbalance rollout NRMSE：`{final['test']['rollout']['descriptor_nrmse']['remaining_token_imbalance']:.6f}`",
         f"- Slow KPI NRMSE：`{final['test']['slow_kpi_nrmse']:.6f}`",
+        f"- representation-only core NRMSE：`{json.dumps(final['test'].get('representation_core_nrmse', {}), ensure_ascii=False)}`",
         "",
         "## 选择逻辑",
         "",
-        "优先选择同时满足核心 differential rollout <0.7、谱半径 <=1.01、global rollout 与 Slow KPI 相对 Step 15 退化不超过10%的最低维 Scheme 1。只有 Scheme 1 全部失败才允许运行 Scheme 2。",
+        "优先选择同时满足核心 differential rollout <0.7、谱半径 <=1.01、global rollout 与 Slow KPI 相对 Step 15 退化不超过10%的最低维 Scheme 1。只有 Scheme 1 全部失败才允许运行 Scheme 2。若 dynamics 门仍失败，只冻结 validation 选择的最低维可观测 representation，不把诊断模型标为可用 Control-ROM。",
     ]
     (output / "STEP15B_CONTROL_RELEVANT_REDESIGN_REPORT.md").write_text(
         "\n".join(lines) + "\n", encoding="utf-8",
