@@ -13,6 +13,7 @@
     "require_test_rollout_skill_positive": true,
     "maximum_validation_slow_kpi_nrmse": 1.0,
     "maximum_test_slow_kpi_nrmse": 1.0,
+    "maximum_validation_control_imbalance_nrmse": 1.0,
     "minimum_control_direction_fraction": 0.6666666667
   }
 }

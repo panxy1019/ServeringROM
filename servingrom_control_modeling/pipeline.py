@@ -425,6 +425,7 @@ def _copy_configured_report(output: Path, result: dict[str, Any]) -> None:
         f"- 增广谱半径：`{selected['spectral_radius']:.6f}`",
         "- 只使用冻结的 `servingrom-control-dataset-v1`；Round 14.3 held-out 数据未读取。",
         "- train/validation 用于拟合和选择；test 仅在模型冻结后执行一次最终评估。",
+        f"- rank=16 控制状态重构充分性：`{result['pod']['rank16_control_imbalance_sufficient']}`。",
         "",
         "## Fast State 指标",
         "",
@@ -436,6 +437,20 @@ def _copy_configured_report(output: Path, result: dict[str, Any]) -> None:
         lines.append(
             f"| {split} | {row['one_step_nrmse']:.6f} | {row['rollout']['state_nrmse']:.6f} | "
             f"{row['rollout']['persistence_nrmse']:.6f} | {row['rollout']['skill']:.6f} |"
+        )
+    lines += [
+        "",
+        "## POD 控制状态重构",
+        "",
+        "validation NRMSE 小于 1 才表示重构优于 train-mean 基线；该门只使用 validation，不参与 test 后调参。",
+        "",
+        "| state | rank 16 validation NRMSE | selected-rank validation NRMSE |",
+        "|---|---:|---:|",
+    ]
+    for name in IMBALANCE_FEATURES:
+        lines.append(
+            f"| {name} | {result['pod']['rank16_validation_control_imbalance'][name]:.6f} | "
+            f"{result['pod']['selected_rank_validation_control_imbalance'][name]:.6f} |"
         )
     lines += [
         "",
@@ -472,7 +487,7 @@ def _copy_configured_report(output: Path, result: dict[str, Any]) -> None:
         "",
         "## 边界",
         "",
-        "本轮未读取 held-out actuator benchmark，未重新调参，未实现 actuator 或 MPC。若 readiness 为 false，应停在 Step 15 分析动力学或输出头的结构性缺口。",
+        "本轮未读取 held-out actuator benchmark，未重新调参，未实现 actuator 或 MPC。若 readiness 为 false，应停在 Step 15 分析 POD 对控制状态的表达能力或动力学输出头的结构性缺口。",
     ]
     (output / "STEP15_CONTROL_ROM_REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -691,6 +706,9 @@ def run_control_rom_pipeline(dataset_root: Path, output_root: Path, config: dict
     np.savez_compressed(output_root / "models/slow_kpi_head.npz", theta=slow_theta, ridge=slow_row["ridge"], outputs=np.asarray(SLOW_OUTPUTS))
 
     gates_config = config["readiness_gates"]
+    imbalance_limit = float(gates_config["maximum_validation_control_imbalance_nrmse"])
+    selected_imbalance = imbalance_reconstruction["validation"][final_model.rank]
+    rank16_imbalance = imbalance_reconstruction["validation"][16]
     gates = {
         "spectral_radius": selection["spectral_radius"] <= maximum_radius,
         "validation_rollout_skill_positive": metrics["validation"]["rollout"]["skill"] > 0.0,
@@ -698,6 +716,7 @@ def run_control_rom_pipeline(dataset_root: Path, output_root: Path, config: dict
         "validation_slow_kpi_beats_mean": slow_metrics["validation_nrmse"] <= float(gates_config["maximum_validation_slow_kpi_nrmse"]),
         "test_slow_kpi_beats_mean": slow_metrics["test_nrmse"] <= float(gates_config["maximum_test_slow_kpi_nrmse"]),
         "control_direction": control_direction["direction_pass_fraction"] >= float(gates_config["minimum_control_direction_fraction"]),
+        "pod_control_imbalance_reconstruction": all(value < imbalance_limit for value in selected_imbalance.values()),
         "all_metrics_finite": bool(all(math.isfinite(metrics[split]["rollout"]["state_nrmse"]) for split in metrics)),
     }
     readiness = {"control_rom_ready": all(gates.values()), "gates": gates}
@@ -714,8 +733,9 @@ def run_control_rom_pipeline(dataset_root: Path, output_root: Path, config: dict
         "selection": selection,
         "pod": {
             "test_reconstruction": test_reconstruction,
-            "rank16_validation_control_imbalance": imbalance_reconstruction["validation"][16],
-            "selected_rank_validation_control_imbalance": imbalance_reconstruction["validation"][final_model.rank],
+            "rank16_validation_control_imbalance": rank16_imbalance,
+            "rank16_control_imbalance_sufficient": all(value < imbalance_limit for value in rank16_imbalance.values()),
+            "selected_rank_validation_control_imbalance": selected_imbalance,
         },
         "metrics": metrics,
         "control_direction": control_direction,
@@ -736,7 +756,7 @@ def run_control_rom_pipeline(dataset_root: Path, output_root: Path, config: dict
     }
     _copy_configured_report(output_root, result)
     for path in sorted(output_root.rglob("*")):
-        if path.is_file() and path.name != "MODEL_MANIFEST.json":
+        if path.is_file() and path.name not in {"MODEL_MANIFEST.json", "step15.log", "step15.pid"}:
             manifest["artifacts"][str(path.relative_to(output_root))] = _sha256(path)
     save_json(output_root / "MODEL_MANIFEST.json", manifest)
     return result
