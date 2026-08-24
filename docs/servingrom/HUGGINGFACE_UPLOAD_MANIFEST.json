@@ -1,0 +1,42 @@
+{
+  "schema_version": "servingrom.huggingface_upload_manifest.v1",
+  "repository": "panxy1019/ServeringROM",
+  "repository_type": "dataset",
+  "visibility": "public",
+  "uploaded_at_utc": "2026-08-24",
+  "source_code_repository": "https://github.com/panxy1019/ServeringROM",
+  "source_code_commit": "62fc6e7e94f88ee5b02054b5a377be9a476a4f33",
+  "datasets": [
+    {
+      "dataset_id": "servingrom-qwen36-1p2d-d2-rom-v1.1-slo2000",
+      "path_in_repo": "rom-dataset-v1.1",
+      "source_path": "/home/admin/servingrom-results/datasets/servingrom-qwen36-1p2d-d2-rom-v1.1-slo2000",
+      "file_count": 32,
+      "total_bytes": 2960373122,
+      "dataset_manifest_sha256": "e5bc4802c232b53b549c4a1eb003837af378d726af05d98e3da65674d668cf1e",
+      "huggingface_commit": "2f3c3255431a2d8be52760039088df8d964a68f2",
+      "status": "uploaded"
+    },
+    {
+      "dataset_id": "servingrom-control-dataset-v1",
+      "path_in_repo": "control-dataset-v1",
+      "source_path": "/home/admin/servingrom-results/datasets/servingrom-control-dataset-v1",
+      "file_count": 28,
+      "total_bytes": 3149370366,
+      "dataset_manifest_sha256": "969aa9687144c96725332917f7d49ad7adc9c7d7c764a9adfd277d62a11ec316",
+      "huggingface_commit": "7ee3661fa68e17b69fc35a53941ecef2bbac1330",
+      "status": "uploaded"
+    }
+  ],
+  "totals": {
+    "dataset_files": 60,
+    "dataset_bytes": 6109743488
+  },
+  "excluded": [
+    "raw telemetry",
+    "request prompts and model output text",
+    "model weights",
+    "credentials and access tokens",
+    "Round 14.3 unsealed held-out campaign"
+  ]
+}

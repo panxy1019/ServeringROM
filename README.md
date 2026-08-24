@@ -8,6 +8,8 @@ ServingROM 是面向 1P2D 大模型推理系统的可观测性、全阶状态重
 
 - [当前完整进展与实验效果](docs/servingrom/CURRENT_PROGRESS_AND_RESULTS_20260824_CN.md)
 - [GitHub 发布范围与外部数据资产](docs/servingrom/GITHUB_ARTIFACT_SCOPE_20260824_CN.md)
+- [Hugging Face 数据卡](docs/servingrom/HUGGINGFACE_DATASET_CARD.md)
+- [Hugging Face 上传清单](docs/servingrom/HUGGINGFACE_UPLOAD_MANIFEST.json)
 - [遥测只读审计](docs/servingrom/TELEMETRY_AUDIT.md)
 - [Full-order Snapshot Schema](docs/servingrom/FULL_ORDER_SNAPSHOT_SCHEMA.md)
 - [Mooncake 最小生命周期报告](docs/servingrom/MOONCAKE_MINIMAL_LIFECYCLE_REPORT.md)
