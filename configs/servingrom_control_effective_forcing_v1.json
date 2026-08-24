@@ -1,0 +1,19 @@
+{
+  "schema_version": "servingrom.control-effective-forcing.config.v1",
+  "model_id": "servingrom-control-effective-forcing-v1",
+  "dataset_id": "servingrom-control-dataset-v1",
+  "frozen_representation": "scheme2_common_differential_block_pod/gc12-diff2",
+  "dt_seconds": 0.2,
+  "candidate_ridges": [0.0001, 0.01, 1.0, 10.0, 100.0],
+  "control_relevant_disturbances": [
+    "accepted_arrival_count",
+    "arrival_prompt_token_mass",
+    "arrival_requested_output_token_mass"
+  ],
+  "maximum_spectral_radius": 1.01,
+  "maximum_global_rollout_degradation": 0.1,
+  "strong_core_rollout_nrmse": 0.75,
+  "minimum_relative_improvement": 0.2,
+  "minimum_clear_improvement": 0.0,
+  "rho_material_improvement": 0.02
+}
