@@ -1,0 +1,12 @@
+{
+  "schema_version": "servingrom.transition-inventory.config.v1",
+  "model_id": "servingrom-transition-inventory-v1",
+  "dataset_id": "servingrom-control-dataset-v1",
+  "fast_window_ms": 200,
+  "flow_model_window_ms": 1000,
+  "candidate_ridges": [0.0001, 0.01, 1.0, 10.0, 100.0],
+  "maximum_request_replay_nrmse": 0.01,
+  "maximum_token_replay_nrmse": 0.02,
+  "minimum_request_exact_fraction": 0.99,
+  "minimum_token_exact_fraction": 0.95
+}

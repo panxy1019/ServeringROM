@@ -1,0 +1,2489 @@
+{
+  "control_rom_ready": false,
+  "data_isolation": {
+    "heldout_read": false,
+    "new_runs_collected": false,
+    "one_p_two_d_started": false,
+    "test_accessed_after_validation_freeze": true
+  },
+  "dataset": {
+    "manifest": {
+      "dataset_id": "servingrom-control-dataset-v1",
+      "dimensions": {
+        "D": 31,
+        "U": 1,
+        "X": 1804,
+        "X_next": 1804
+      },
+      "immutable": true,
+      "run_count": 36,
+      "source_campaign_manifest_sha256": "291a98d8be6c4d2ce32c572c4889df66a7d7e4807916b7bbeb8fb8b357b75cd5",
+      "split_policy": "whole-run isolation; seed 101=train, 202=validation, 303=test"
+    },
+    "quality": {
+      "all_run_quality_pass": true,
+      "control_authority_groups": [
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8466719625572736,
+              "high_mean": 48.338181818181816,
+              "low_mean": -39.14545454545455
+            },
+            "running_imbalance": {
+              "cohen_d": 0.9095156765020709,
+              "high_mean": 0.4561038961038961,
+              "low_mean": -0.3181818181818182
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.12447218265944007,
+              "high_mean": 0.006753246753246753,
+              "low_mean": -0.004242424242424243
+            }
+          },
+          "load_fraction": 0.55,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6916666666666667,
+          "routed_fraction_low": 0.3103448275862069,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.49832106613574423,
+              "high_mean": 25.822926829268294,
+              "low_mean": -18.71936507936508
+            },
+            "running_imbalance": {
+              "cohen_d": 0.6191737609725103,
+              "high_mean": 0.23609756097560974,
+              "low_mean": -0.22793650793650794
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.05631413174504681,
+              "high_mean": 0.001951219512195122,
+              "low_mean": -0.0019047619047619048
+            }
+          },
+          "load_fraction": 0.55,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6697247706422018,
+          "routed_fraction_low": 0.358974358974359,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8151402363605148,
+              "high_mean": 42.79526315789474,
+              "low_mean": -58.34144927536232
+            },
+            "running_imbalance": {
+              "cohen_d": 0.9919985701335555,
+              "high_mean": 0.47842105263157897,
+              "low_mean": -0.5501449275362319
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.13586610703284593,
+              "high_mean": 0.004736842105263158,
+              "low_mean": -0.009855072463768115
+            }
+          },
+          "load_fraction": 0.75,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6942675159235668,
+          "routed_fraction_low": 0.2972972972972973,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.6535683700054472,
+              "high_mean": 38.74442538593482,
+              "low_mean": -33.4016606123508
+            },
+            "running_imbalance": {
+              "cohen_d": 0.7381062692400792,
+              "high_mean": 0.34419668381932533,
+              "low_mean": -0.3227815256875973
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.09213881449717748,
+              "high_mean": 0.002287021154945683,
+              "low_mean": -0.00467047223663726
+            }
+          },
+          "load_fraction": 0.75,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.671875,
+          "routed_fraction_low": 0.31007751937984496,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8115724180803578,
+              "high_mean": 44.70647773279352,
+              "low_mean": -52.97875
+            },
+            "running_imbalance": {
+              "cohen_d": 0.9955139845886573,
+              "high_mean": 0.5369433198380567,
+              "low_mean": -0.58
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.14552171870065447,
+              "high_mean": 0.01062753036437247,
+              "low_mean": -0.006875
+            }
+          },
+          "load_fraction": 0.92,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6878306878306878,
+          "routed_fraction_low": 0.3082706766917293,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.9681237645089164,
+              "high_mean": 76.49953488372093,
+              "low_mean": -42.39755766621438
+            },
+            "running_imbalance": {
+              "cohen_d": 1.2073083092677677,
+              "high_mean": 0.7158139534883721,
+              "low_mean": -0.48100407055630934
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.1478685916146481,
+              "high_mean": 0.0074418604651162795,
+              "low_mean": -0.007462686567164179
+            }
+          },
+          "load_fraction": 0.92,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6915422885572139,
+          "routed_fraction_low": 0.31654676258992803,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.5858115200163907,
+              "high_mean": 39.884878048780486,
+              "low_mean": -24.053939393939395
+            },
+            "running_imbalance": {
+              "cohen_d": 0.6888722304281394,
+              "high_mean": 0.38926829268292684,
+              "low_mean": -0.22484848484848485
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.11671115759865938,
+              "high_mean": 0.010731707317073172,
+              "low_mean": -0.0018181818181818182
+            }
+          },
+          "load_fraction": 0.55,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6894409937888198,
+          "routed_fraction_low": 0.31313131313131315,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.6244375539617095,
+              "high_mean": 44.38006230529595,
+              "low_mean": -25.793185893604303
+            },
+            "running_imbalance": {
+              "cohen_d": 0.5986041334581941,
+              "high_mean": 0.3644859813084112,
+              "low_mean": -0.15481171548117154
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.049080462167143665,
+              "high_mean": 0.0020768431983385254,
+              "low_mean": -0.001195457262402869
+            }
+          },
+          "load_fraction": 0.55,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6923076923076923,
+          "routed_fraction_low": 0.3211009174311927,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8289192583867414,
+              "high_mean": 56.250786516853935,
+              "low_mean": -60.35923076923077
+            },
+            "running_imbalance": {
+              "cohen_d": 1.0271741410290771,
+              "high_mean": 0.5065168539325843,
+              "low_mean": -0.583076923076923
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.09601826882526601,
+              "high_mean": 0.004943820224719101,
+              "low_mean": -0.004615384615384616
+            }
+          },
+          "load_fraction": 0.75,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6888888888888889,
+          "routed_fraction_low": 0.3114754098360656,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8432979490956359,
+              "high_mean": 57.248988764044945,
+              "low_mean": -59.099622641509434
+            },
+            "running_imbalance": {
+              "cohen_d": 0.9075314515555168,
+              "high_mean": 0.4750561797752809,
+              "low_mean": -0.49886792452830186
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.09491814826870755,
+              "high_mean": 0.004943820224719101,
+              "low_mean": -0.0037735849056603774
+            }
+          },
+          "load_fraction": 0.75,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6857142857142857,
+          "routed_fraction_low": 0.30708661417322836,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8248709461515747,
+              "high_mean": 60.2287323943662,
+              "low_mean": -63.4848
+            },
+            "running_imbalance": {
+              "cohen_d": 1.0098468764110038,
+              "high_mean": 0.6473239436619719,
+              "low_mean": -0.6053333333333333
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.09577347185585153,
+              "high_mean": 0.008450704225352112,
+              "low_mean": -0.0048
+            }
+          },
+          "load_fraction": 0.92,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6919642857142857,
+          "routed_fraction_low": 0.3108108108108108,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8038206240173874,
+              "high_mean": 41.9706976744186,
+              "low_mean": -71.24813559322034
+            },
+            "running_imbalance": {
+              "cohen_d": 0.978558926554837,
+              "high_mean": 0.49209302325581394,
+              "low_mean": -0.6040677966101695
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.17332796616425894,
+              "high_mean": 0.010697674418604652,
+              "low_mean": -0.01152542372881356
+            }
+          },
+          "load_fraction": 0.92,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6941176470588235,
+          "routed_fraction_low": 0.29545454545454547,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        }
+      ],
+      "control_dataset_ready": true,
+      "control_identifiability_ready": true,
+      "fast_windows": 108000,
+      "runs": 36,
+      "schema_version": "servingrom.control_dataset_quality.v1",
+      "slow_windows": 4320,
+      "split_fast_windows": {
+        "test": 36000,
+        "train": 36000,
+        "validation": 36000
+      }
+    },
+    "sha256_manifest": "1ad46fcaadc6878db5a5f801d38ad95a8da991de2eee1f75f5b59f89363b5504",
+    "verified_file_count": 27
+  },
+  "flow_model": {
+    "ridge_scan": [
+      {
+        "ridge": 0.0001,
+        "score": 0.7886008017621032,
+        "validation": {
+          "differential_nrmse": {
+            "handoff": {
+              "requests": 0.992436630718067,
+              "tokens": 0.9928690588544564
+            },
+            "running": {
+              "requests": 0.491192160651074,
+              "tokens": 0.27559006222345367
+            },
+            "waiting": {
+              "requests": 0.9892822929283924,
+              "tokens": 0.9902346051971771
+            }
+          },
+          "finite": true,
+          "runs": [
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9965021388236165,
+                  "tokens": 0.996779614064518
+                },
+                "running": {
+                  "requests": 0.4868731485492282,
+                  "tokens": 0.26818567748458866
+                },
+                "waiting": {
+                  "requests": 0.9950939664626433,
+                  "tokens": 0.9886278969248081
+                }
+              },
+              "run_number": 0
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0142269475798085,
+                  "tokens": 1.020045361882043
+                },
+                "running": {
+                  "requests": 0.49198594697586906,
+                  "tokens": 0.3087744561373663
+                },
+                "waiting": {
+                  "requests": 0.9937344867075116,
+                  "tokens": 0.988861917576343
+                }
+              },
+              "run_number": 1
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9899445418422602,
+                  "tokens": 0.9886401214804462
+                },
+                "running": {
+                  "requests": 0.4671175622235761,
+                  "tokens": 0.23717772833617337
+                },
+                "waiting": {
+                  "requests": 1.0111912247657733,
+                  "tokens": 1.0262801754512452
+                }
+              },
+              "run_number": 2
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9977703821256957,
+                  "tokens": 0.9884894843262066
+                },
+                "running": {
+                  "requests": 0.43842863357321005,
+                  "tokens": 0.2605532504187813
+                },
+                "waiting": {
+                  "requests": 0.9815712542362102,
+                  "tokens": 0.9860618532098362
+                }
+              },
+              "run_number": 3
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.038336073320502,
+                  "tokens": 1.2342333865447026
+                },
+                "running": {
+                  "requests": 0.49864157164181755,
+                  "tokens": 0.2761296786290225
+                },
+                "waiting": {
+                  "requests": 0.9847390182979494,
+                  "tokens": 0.9856627440989172
+                }
+              },
+              "run_number": 4
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9884152912077555,
+                  "tokens": 0.9923647515783677
+                },
+                "running": {
+                  "requests": 0.5482732936360999,
+                  "tokens": 0.33092045480917626
+                },
+                "waiting": {
+                  "requests": 0.9854680685761209,
+                  "tokens": 0.9903222699689069
+                }
+              },
+              "run_number": 5
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0051501548535582,
+                  "tokens": 1.0209679220953338
+                },
+                "running": {
+                  "requests": 0.4700138148067999,
+                  "tokens": 0.22500073419875655
+                },
+                "waiting": {
+                  "requests": 0.9956552824534823,
+                  "tokens": 0.9908223443452013
+                }
+              },
+              "run_number": 6
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.982442232246094,
+                  "tokens": 0.9763755480793788
+                },
+                "running": {
+                  "requests": 0.5622311224088302,
+                  "tokens": 0.3414804213663229
+                },
+                "waiting": {
+                  "requests": 0.9951890193858777,
+                  "tokens": 0.9881114719644022
+                }
+              },
+              "run_number": 7
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.99080835811841,
+                  "tokens": 0.9991115368000284
+                },
+                "running": {
+                  "requests": 0.5012947094850293,
+                  "tokens": 0.26687690706725453
+                },
+                "waiting": {
+                  "requests": 0.9967408500230951,
+                  "tokens": 0.9937087946375558
+                }
+              },
+              "run_number": 8
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.985687568945155,
+                  "tokens": 0.9868750054677639
+                },
+                "running": {
+                  "requests": 0.521575224761756,
+                  "tokens": 0.2558081731654546
+                },
+                "waiting": {
+                  "requests": 0.9864606517931063,
+                  "tokens": 0.9858183460971197
+                }
+              },
+              "run_number": 9
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9921651597484803,
+                  "tokens": 0.9908440284999807
+                },
+                "running": {
+                  "requests": 0.4890475150741568,
+                  "tokens": 0.26817003888159713
+                },
+                "waiting": {
+                  "requests": 0.990145963882786,
+                  "tokens": 0.9955131448137146
+                }
+              },
+              "run_number": 10
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9934078773403604,
+                  "tokens": 0.9944913146802301
+                },
+                "running": {
+                  "requests": 0.4377500973745978,
+                  "tokens": 0.26637554422081766
+                },
+                "waiting": {
+                  "requests": 0.9852710269466435,
+                  "tokens": 0.9943369609289294
+                }
+              },
+              "run_number": 11
+            }
+          ]
+        }
+      },
+      {
+        "ridge": 0.01,
+        "score": 0.7886007431840801,
+        "validation": {
+          "differential_nrmse": {
+            "handoff": {
+              "requests": 0.9924362197986424,
+              "tokens": 0.9928695009373368
+            },
+            "running": {
+              "requests": 0.49119215880217104,
+              "tokens": 0.27559015541846416
+            },
+            "waiting": {
+              "requests": 0.9892818192551215,
+              "tokens": 0.9902346048927446
+            }
+          },
+          "finite": true,
+          "runs": [
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9965027194338489,
+                  "tokens": 0.9967790652002578
+                },
+                "running": {
+                  "requests": 0.48687331101266423,
+                  "tokens": 0.2681860201792423
+                },
+                "waiting": {
+                  "requests": 0.9950952533552405,
+                  "tokens": 0.9886275758041045
+                }
+              },
+              "run_number": 0
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0142276748792487,
+                  "tokens": 1.02004657176191
+                },
+                "running": {
+                  "requests": 0.491985286600065,
+                  "tokens": 0.30877424029102635
+                },
+                "waiting": {
+                  "requests": 0.9937358606131983,
+                  "tokens": 0.9888602986883376
+                }
+              },
+              "run_number": 1
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9899446701839536,
+                  "tokens": 0.988640418790043
+                },
+                "running": {
+                  "requests": 0.46711757916254903,
+                  "tokens": 0.2371781746503515
+                },
+                "waiting": {
+                  "requests": 1.01119220761034,
+                  "tokens": 1.0262825218962253
+                }
+              },
+              "run_number": 2
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9977703202128749,
+                  "tokens": 0.9884896093632924
+                },
+                "running": {
+                  "requests": 0.43842777159003654,
+                  "tokens": 0.26055334878729675
+                },
+                "waiting": {
+                  "requests": 0.9815703200940052,
+                  "tokens": 0.986061599084891
+                }
+              },
+              "run_number": 3
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0383368508750896,
+                  "tokens": 1.2342531671824457
+                },
+                "running": {
+                  "requests": 0.4986408391013178,
+                  "tokens": 0.27613007645535337
+                },
+                "waiting": {
+                  "requests": 0.9847383997931252,
+                  "tokens": 0.9856625332597292
+                }
+              },
+              "run_number": 4
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9884144833669353,
+                  "tokens": 0.9923651219729918
+                },
+                "running": {
+                  "requests": 0.5482713877638395,
+                  "tokens": 0.33092009458542165
+                },
+                "waiting": {
+                  "requests": 0.9854668999348799,
+                  "tokens": 0.9903221300571368
+                }
+              },
+              "run_number": 5
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0051516818311486,
+                  "tokens": 1.0209714452293033
+                },
+                "running": {
+                  "requests": 0.47001498904415917,
+                  "tokens": 0.2250010411643088
+                },
+                "waiting": {
+                  "requests": 0.9956555141263468,
+                  "tokens": 0.9908226166401816
+                }
+              },
+              "run_number": 6
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9824414384795227,
+                  "tokens": 0.9763751812448356
+                },
+                "running": {
+                  "requests": 0.5622317873197509,
+                  "tokens": 0.34148035019697526
+                },
+                "waiting": {
+                  "requests": 0.995190371180831,
+                  "tokens": 0.9881105341673975
+                }
+              },
+              "run_number": 7
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9908074963985498,
+                  "tokens": 0.999111883135293
+                },
+                "running": {
+                  "requests": 0.5012957312697117,
+                  "tokens": 0.26687695940061124
+                },
+                "waiting": {
+                  "requests": 0.9967411792366422,
+                  "tokens": 0.9937096945012142
+                }
+              },
+              "run_number": 8
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9856873237785495,
+                  "tokens": 0.9868759829453017
+                },
+                "running": {
+                  "requests": 0.5215756675898648,
+                  "tokens": 0.2558083748003468
+                },
+                "waiting": {
+                  "requests": 0.9864606384118005,
+                  "tokens": 0.9858183017148772
+                }
+              },
+              "run_number": 9
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9921646241347941,
+                  "tokens": 0.9908445629143653
+                },
+                "running": {
+                  "requests": 0.48904829614550294,
+                  "tokens": 0.26817022483410596
+                },
+                "waiting": {
+                  "requests": 0.9901445154685542,
+                  "tokens": 0.9955141241715341
+                }
+              },
+              "run_number": 10
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.993407015373896,
+                  "tokens": 0.9944915136971052
+                },
+                "running": {
+                  "requests": 0.43775060769765944,
+                  "tokens": 0.2663755743612389
+                },
+                "waiting": {
+                  "requests": 0.9852690905313838,
+                  "tokens": 0.9943386336646389
+                }
+              },
+              "run_number": 11
+            }
+          ]
+        }
+      },
+      {
+        "ridge": 1.0,
+        "score": 0.7885955143615474,
+        "validation": {
+          "differential_nrmse": {
+            "handoff": {
+              "requests": 0.992396310254862,
+              "tokens": 0.9929135176980161
+            },
+            "running": {
+              "requests": 0.4911925629224322,
+              "tokens": 0.2755998361793889
+            },
+            "waiting": {
+              "requests": 0.9892356878026046,
+              "tokens": 0.9902351713119809
+            }
+          },
+          "finite": true,
+          "runs": [
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9965615959214871,
+                  "tokens": 0.9967247731310027
+                },
+                "running": {
+                  "requests": 0.48688996986799477,
+                  "tokens": 0.26822060333627484
+                },
+                "waiting": {
+                  "requests": 0.9952250739437619,
+                  "tokens": 0.9885958936283986
+                }
+              },
+              "run_number": 0
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0143014502860952,
+                  "tokens": 1.020168037495196
+                },
+                "running": {
+                  "requests": 0.49191968693530724,
+                  "tokens": 0.3087528973560288
+                },
+                "waiting": {
+                  "requests": 0.9938577691683907,
+                  "tokens": 0.9886989084016067
+                }
+              },
+              "run_number": 1
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9899582766923362,
+                  "tokens": 0.9886705354324676
+                },
+                "running": {
+                  "requests": 0.4671196950655392,
+                  "tokens": 0.2372231103538055
+                },
+                "waiting": {
+                  "requests": 1.0112920292535243,
+                  "tokens": 1.0265186034080283
+                }
+              },
+              "run_number": 2
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9977650876157952,
+                  "tokens": 0.9885024516456171
+                },
+                "running": {
+                  "requests": 0.4383423016453227,
+                  "tokens": 0.26056342667158233
+                },
+                "waiting": {
+                  "requests": 0.981484920774575,
+                  "tokens": 0.9860363987356014
+                }
+              },
+              "run_number": 3
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.038417427967943,
+                  "tokens": 1.2362362862262697
+                },
+                "running": {
+                  "requests": 0.49856840003201297,
+                  "tokens": 0.2761704284023245
+                },
+                "waiting": {
+                  "requests": 0.9846784078822363,
+                  "tokens": 0.9856416100411473
+                }
+              },
+              "run_number": 4
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9883345901115291,
+                  "tokens": 0.9924024363733435
+                },
+                "running": {
+                  "requests": 0.5480821108033145,
+                  "tokens": 0.33088466978451964
+                },
+                "waiting": {
+                  "requests": 0.9853511472779776,
+                  "tokens": 0.990308500674846
+                }
+              },
+              "run_number": 5
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.005307132055828,
+                  "tokens": 1.0213251991245405
+                },
+                "running": {
+                  "requests": 0.47013258906001854,
+                  "tokens": 0.22503195070988283
+                },
+                "waiting": {
+                  "requests": 0.9956809994942392,
+                  "tokens": 0.9908507778879768
+                }
+              },
+              "run_number": 6
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9823628258723307,
+                  "tokens": 0.9763387743941023
+                },
+                "running": {
+                  "requests": 0.5622992834139326,
+                  "tokens": 0.34147362193172
+                },
+                "waiting": {
+                  "requests": 0.9953270151817752,
+                  "tokens": 0.9880174122943918
+                }
+              },
+              "run_number": 7
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9907222690376101,
+                  "tokens": 0.9991447691161024
+                },
+                "running": {
+                  "requests": 0.5013978882471735,
+                  "tokens": 0.26688262619206005
+                },
+                "waiting": {
+                  "requests": 0.9967775632786466,
+                  "tokens": 0.9938013296100017
+                }
+              },
+              "run_number": 8
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9856645285787861,
+                  "tokens": 0.9869745854466407
+                },
+                "running": {
+                  "requests": 0.5216203479597805,
+                  "tokens": 0.2558290552687229
+                },
+                "waiting": {
+                  "requests": 0.9864609383413984,
+                  "tokens": 0.9858153545082962
+                }
+              },
+              "run_number": 9
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9921127628580736,
+                  "tokens": 0.9908943506069329
+                },
+                "running": {
+                  "requests": 0.48912671662871904,
+                  "tokens": 0.26818887615754855
+                },
+                "waiting": {
+                  "requests": 0.9900019503418805,
+                  "tokens": 0.9956129611539447
+                }
+              },
+              "run_number": 10
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9933221352759564,
+                  "tokens": 0.9945119938092146
+                },
+                "running": {
+                  "requests": 0.4378022699868143,
+                  "tokens": 0.2663789763478689
+                },
+                "waiting": {
+                  "requests": 0.9850770780442862,
+                  "tokens": 0.9945063833783784
+                }
+              },
+              "run_number": 11
+            }
+          ]
+        }
+      },
+      {
+        "ridge": 10.0,
+        "score": 0.7886077804442148,
+        "validation": {
+          "differential_nrmse": {
+            "handoff": {
+              "requests": 0.9921411773346254,
+              "tokens": 0.9933398200526041
+            },
+            "running": {
+              "requests": 0.49123260485059705,
+              "tokens": 0.27570962266724486
+            },
+            "waiting": {
+              "requests": 0.9889353249528976,
+              "tokens": 0.9902881328073188
+            }
+          },
+          "finite": true,
+          "runs": [
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9971677760217076,
+                  "tokens": 0.9962857456110797
+                },
+                "running": {
+                  "requests": 0.4870718470915426,
+                  "tokens": 0.26855022655110067
+                },
+                "waiting": {
+                  "requests": 0.9965192467179814,
+                  "tokens": 0.9883457370381342
+                }
+              },
+              "run_number": 0
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.015068422545658,
+                  "tokens": 1.0213102998428496
+                },
+                "running": {
+                  "requests": 0.4913816067780236,
+                  "tokens": 0.30858799141594595
+                },
+                "waiting": {
+                  "requests": 0.9949542391120897,
+                  "tokens": 0.9872721579514451
+                }
+              },
+              "run_number": 1
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9901516654587036,
+                  "tokens": 0.9889795360731594
+                },
+                "running": {
+                  "requests": 0.4671689982430825,
+                  "tokens": 0.2376619999643908
+                },
+                "waiting": {
+                  "requests": 1.0122040174535605,
+                  "tokens": 1.0287869867403479
+                }
+              },
+              "run_number": 2
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9978040497179577,
+                  "tokens": 0.9886511402157949
+                },
+                "running": {
+                  "requests": 0.43764514679217326,
+                  "tokens": 0.26067963290864676
+                },
+                "waiting": {
+                  "requests": 0.9808303662945762,
+                  "tokens": 0.9858473260755706
+                }
+              },
+              "run_number": 3
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.039414052344254,
+                  "tokens": 1.254693366507464
+                },
+                "running": {
+                  "requests": 0.4979782359698112,
+                  "tokens": 0.27655754601659893
+                },
+                "waiting": {
+                  "requests": 0.984174784029891,
+                  "tokens": 0.985464337927676
+                }
+              },
+              "run_number": 4
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9876879433776506,
+                  "tokens": 0.9927587304579516
+                },
+                "running": {
+                  "requests": 0.5464349705465342,
+                  "tokens": 0.3305972566618733
+                },
+                "waiting": {
+                  "requests": 0.9844217667517132,
+                  "tokens": 0.990212519208224
+                }
+              },
+              "run_number": 5
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0069639483144335,
+                  "tokens": 1.0246648811588375
+                },
+                "running": {
+                  "requests": 0.4712012030836598,
+                  "tokens": 0.2253349926525158
+                },
+                "waiting": {
+                  "requests": 0.9960630457864784,
+                  "tokens": 0.9911889299791791
+                }
+              },
+              "run_number": 6
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9817157838422164,
+                  "tokens": 0.9760322443850034
+                },
+                "running": {
+                  "requests": 0.5629462031043164,
+                  "tokens": 0.34143923612464433
+                },
+                "waiting": {
+                  "requests": 0.9965685821704547,
+                  "tokens": 0.9872305925320696
+                }
+              },
+              "run_number": 7
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9900340621353042,
+                  "tokens": 0.9994953910346048
+                },
+                "running": {
+                  "requests": 0.5023263685933277,
+                  "tokens": 0.266959098167008
+                },
+                "waiting": {
+                  "requests": 0.997371949752294,
+                  "tokens": 0.9947734123500855
+                }
+              },
+              "run_number": 8
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9856257816831892,
+                  "tokens": 0.9878713880587594
+                },
+                "running": {
+                  "requests": 0.5220686145289263,
+                  "tokens": 0.25604871233337934
+                },
+                "waiting": {
+                  "requests": 0.9865067204155394,
+                  "tokens": 0.9858647094536815
+                }
+              },
+              "run_number": 9
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9917962476120724,
+                  "tokens": 0.9913531753928201
+                },
+                "running": {
+                  "requests": 0.4898345724688692,
+                  "tokens": 0.268346545630976
+                },
+                "waiting": {
+                  "requests": 0.9888967217029753,
+                  "tokens": 0.9965876382752724
+                }
+              },
+              "run_number": 10
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9926667955063817,
+                  "tokens": 0.9946981773133012
+                },
+                "running": {
+                  "requests": 0.43828392333032945,
+                  "tokens": 0.2664316008273821
+                },
+                "waiting": {
+                  "requests": 0.9835799265617063,
+                  "tokens": 0.9960446946658978
+                }
+              },
+              "run_number": 11
+            }
+          ]
+        }
+      },
+      {
+        "ridge": 100.0,
+        "score": 0.7917648057580062,
+        "validation": {
+          "differential_nrmse": {
+            "handoff": {
+              "requests": 0.9970370490401438,
+              "tokens": 0.9990293304075594
+            },
+            "running": {
+              "requests": 0.4929655468147898,
+              "tokens": 0.27801102537115396
+            },
+            "waiting": {
+              "requests": 0.9909127492483408,
+              "tokens": 0.9926331336660494
+            }
+          },
+          "finite": true,
+          "runs": [
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0088944092103065,
+                  "tokens": 0.9942314150120005
+                },
+                "running": {
+                  "requests": 0.4907760184943255,
+                  "tokens": 0.27234635442799593
+                },
+                "waiting": {
+                  "requests": 1.011850687373153,
+                  "tokens": 0.9880763936596424
+                }
+              },
+              "run_number": 0
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0291594504039887,
+                  "tokens": 1.0351683690284421
+                },
+                "running": {
+                  "requests": 0.4889329748158726,
+                  "tokens": 0.3087616453833262
+                },
+                "waiting": {
+                  "requests": 1.0055894248185164,
+                  "tokens": 0.9762983885701733
+                }
+              },
+              "run_number": 1
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9973308916786088,
+                  "tokens": 0.9930744663666582
+                },
+                "running": {
+                  "requests": 0.4697383664565079,
+                  "tokens": 0.2434091833641501
+                },
+                "waiting": {
+                  "requests": 1.0257085451275088,
+                  "tokens": 1.056222034491749
+                }
+              },
+              "run_number": 2
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0028361818995997,
+                  "tokens": 0.9903008482646433
+                },
+                "running": {
+                  "requests": 0.43419821488008087,
+                  "tokens": 0.26278128973276504
+                },
+                "waiting": {
+                  "requests": 0.9780139679146892,
+                  "tokens": 0.9843765924038708
+                }
+              },
+              "run_number": 3
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0645407503571598,
+                  "tokens": 1.4291062482382886
+                },
+                "running": {
+                  "requests": 0.4963676088370654,
+                  "tokens": 0.28126170808104806
+                },
+                "waiting": {
+                  "requests": 0.9840112961025109,
+                  "tokens": 0.9838532307985393
+                }
+              },
+              "run_number": 4
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9877205605686565,
+                  "tokens": 0.9967412902913256
+                },
+                "running": {
+                  "requests": 0.5357571707565721,
+                  "tokens": 0.3306243659266705
+                },
+                "waiting": {
+                  "requests": 0.9801186419362787,
+                  "tokens": 0.992176238684599
+                }
+              },
+              "run_number": 5
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 1.0401729653082645,
+                  "tokens": 1.062294145096836
+                },
+                "running": {
+                  "requests": 0.4806605957327432,
+                  "tokens": 0.22936420407576139
+                },
+                "waiting": {
+                  "requests": 1.0044538776803107,
+                  "tokens": 0.9952301120678643
+                }
+              },
+              "run_number": 6
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9808235734394557,
+                  "tokens": 0.973770087449099
+                },
+                "running": {
+                  "requests": 0.5674135782024116,
+                  "tokens": 0.3419993776281599
+                },
+                "waiting": {
+                  "requests": 1.0099877471585827,
+                  "tokens": 0.9863505881846893
+                }
+              },
+              "run_number": 7
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9919769697169726,
+                  "tokens": 1.0071441194050201
+                },
+                "running": {
+                  "requests": 0.50986270451335,
+                  "tokens": 0.2686229744629216
+                },
+                "waiting": {
+                  "requests": 1.0090571775754047,
+                  "tokens": 1.0063187621549587
+                }
+              },
+              "run_number": 8
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9933061579197258,
+                  "tokens": 0.9972779327595869
+                },
+                "running": {
+                  "requests": 0.5260004776863196,
+                  "tokens": 0.25908240396075677
+                },
+                "waiting": {
+                  "requests": 0.9923719587216684,
+                  "tokens": 0.9902035516964596
+                }
+              },
+              "run_number": 9
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9965447860300379,
+                  "tokens": 0.9985278114922634
+                },
+                "running": {
+                  "requests": 0.4959165681402906,
+                  "tokens": 0.2710739236053598
+                },
+                "waiting": {
+                  "requests": 0.9845778591252322,
+                  "tokens": 1.0056456535627856
+                }
+              },
+              "run_number": 10
+            },
+            {
+              "nrmse": {
+                "handoff": {
+                  "requests": 0.9945960144803974,
+                  "tokens": 0.9976012636903814
+                },
+                "running": {
+                  "requests": 0.44346090148829037,
+                  "tokens": 0.26781168210543266
+                },
+                "waiting": {
+                  "requests": 0.9782863401096603,
+                  "tokens": 1.0097989111652614
+                }
+              },
+              "run_number": 11
+            }
+          ]
+        }
+      }
+    ],
+    "selected_ridge": 1.0,
+    "test": {
+      "differential_nrmse": {
+        "handoff": {
+          "requests": 0.9925524046896848,
+          "tokens": 1.002709819676187
+        },
+        "running": {
+          "requests": 0.48322479825676284,
+          "tokens": 0.26324062332151527
+        },
+        "waiting": {
+          "requests": 0.99518777735063,
+          "tokens": 0.9913680835762009
+        }
+      },
+      "finite": true,
+      "runs": [
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 1.0319485846211998,
+              "tokens": 1.02639489551294
+            },
+            "running": {
+              "requests": 0.5031637919307137,
+              "tokens": 0.2606562155620415
+            },
+            "waiting": {
+              "requests": 0.9913677082660947,
+              "tokens": 1.00242870822506
+            }
+          },
+          "run_number": 0
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 1.0178270324712537,
+              "tokens": 0.9905061055988427
+            },
+            "running": {
+              "requests": 0.47922417778024357,
+              "tokens": 0.2538208843761014
+            },
+            "waiting": {
+              "requests": 0.9850343118205773,
+              "tokens": 0.9862970603831489
+            }
+          },
+          "run_number": 1
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9928960706936618,
+              "tokens": 1.0051093617101634
+            },
+            "running": {
+              "requests": 0.48707429351895704,
+              "tokens": 0.2367033745970619
+            },
+            "waiting": {
+              "requests": 0.9988344551060263,
+              "tokens": 0.9979677079524393
+            }
+          },
+          "run_number": 2
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9807982151549435,
+              "tokens": 0.9923401527168328
+            },
+            "running": {
+              "requests": 0.5505280873712034,
+              "tokens": 0.392158994439186
+            },
+            "waiting": {
+              "requests": 0.9918013057670109,
+              "tokens": 0.9860193921604153
+            }
+          },
+          "run_number": 3
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9953645773311913,
+              "tokens": 1.0997773614870516
+            },
+            "running": {
+              "requests": 0.45668694042500785,
+              "tokens": 0.2348885063216092
+            },
+            "waiting": {
+              "requests": 1.010772750651512,
+              "tokens": 1.0014698284606667
+            }
+          },
+          "run_number": 4
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9974924028895183,
+              "tokens": 1.014121141543464
+            },
+            "running": {
+              "requests": 0.5239931291363058,
+              "tokens": 0.27272018133647163
+            },
+            "waiting": {
+              "requests": 0.9887800881053745,
+              "tokens": 0.9912620286793181
+            }
+          },
+          "run_number": 5
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9958185869318072,
+              "tokens": 1.0135409025290931
+            },
+            "running": {
+              "requests": 0.4921806124432837,
+              "tokens": 0.24774282443865786
+            },
+            "waiting": {
+              "requests": 0.9874727262641377,
+              "tokens": 0.9870154140581171
+            }
+          },
+          "run_number": 6
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9912743239470961,
+              "tokens": 1.043614116270193
+            },
+            "running": {
+              "requests": 0.4819976885798567,
+              "tokens": 0.23611092556379576
+            },
+            "waiting": {
+              "requests": 0.9931770710103424,
+              "tokens": 0.9860230693084728
+            }
+          },
+          "run_number": 7
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9930071096149389,
+              "tokens": 0.988492074328239
+            },
+            "running": {
+              "requests": 0.4963895301494075,
+              "tokens": 0.272425924172055
+            },
+            "waiting": {
+              "requests": 0.9967831689806754,
+              "tokens": 1.0042923561259869
+            }
+          },
+          "run_number": 8
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9944053430608273,
+              "tokens": 1.0056907145549658
+            },
+            "running": {
+              "requests": 0.4532550154933177,
+              "tokens": 0.2368924057980678
+            },
+            "waiting": {
+              "requests": 0.9992787241075702,
+              "tokens": 0.9959256848763676
+            }
+          },
+          "run_number": 9
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9835126933677368,
+              "tokens": 0.9844699491687572
+            },
+            "running": {
+              "requests": 0.4563833064561217,
+              "tokens": 0.2262666807313438
+            },
+            "waiting": {
+              "requests": 1.0051681191860564,
+              "tokens": 1.0380278055325691
+            }
+          },
+          "run_number": 10
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 1.000427376534392,
+              "tokens": 1.0314090142058678
+            },
+            "running": {
+              "requests": 0.46340727830151246,
+              "tokens": 0.28915002566425013
+            },
+            "waiting": {
+              "requests": 0.9968451567001073,
+              "tokens": 0.9865333329256504
+            }
+          },
+          "run_number": 11
+        }
+      ]
+    },
+    "validation": {
+      "differential_nrmse": {
+        "handoff": {
+          "requests": 0.992396310254862,
+          "tokens": 0.9929135176980161
+        },
+        "running": {
+          "requests": 0.4911925629224322,
+          "tokens": 0.2755998361793889
+        },
+        "waiting": {
+          "requests": 0.9892356878026046,
+          "tokens": 0.9902351713119809
+        }
+      },
+      "finite": true,
+      "runs": [
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9965615959214871,
+              "tokens": 0.9967247731310027
+            },
+            "running": {
+              "requests": 0.48688996986799477,
+              "tokens": 0.26822060333627484
+            },
+            "waiting": {
+              "requests": 0.9952250739437619,
+              "tokens": 0.9885958936283986
+            }
+          },
+          "run_number": 0
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 1.0143014502860952,
+              "tokens": 1.020168037495196
+            },
+            "running": {
+              "requests": 0.49191968693530724,
+              "tokens": 0.3087528973560288
+            },
+            "waiting": {
+              "requests": 0.9938577691683907,
+              "tokens": 0.9886989084016067
+            }
+          },
+          "run_number": 1
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9899582766923362,
+              "tokens": 0.9886705354324676
+            },
+            "running": {
+              "requests": 0.4671196950655392,
+              "tokens": 0.2372231103538055
+            },
+            "waiting": {
+              "requests": 1.0112920292535243,
+              "tokens": 1.0265186034080283
+            }
+          },
+          "run_number": 2
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9977650876157952,
+              "tokens": 0.9885024516456171
+            },
+            "running": {
+              "requests": 0.4383423016453227,
+              "tokens": 0.26056342667158233
+            },
+            "waiting": {
+              "requests": 0.981484920774575,
+              "tokens": 0.9860363987356014
+            }
+          },
+          "run_number": 3
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 1.038417427967943,
+              "tokens": 1.2362362862262697
+            },
+            "running": {
+              "requests": 0.49856840003201297,
+              "tokens": 0.2761704284023245
+            },
+            "waiting": {
+              "requests": 0.9846784078822363,
+              "tokens": 0.9856416100411473
+            }
+          },
+          "run_number": 4
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9883345901115291,
+              "tokens": 0.9924024363733435
+            },
+            "running": {
+              "requests": 0.5480821108033145,
+              "tokens": 0.33088466978451964
+            },
+            "waiting": {
+              "requests": 0.9853511472779776,
+              "tokens": 0.990308500674846
+            }
+          },
+          "run_number": 5
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 1.005307132055828,
+              "tokens": 1.0213251991245405
+            },
+            "running": {
+              "requests": 0.47013258906001854,
+              "tokens": 0.22503195070988283
+            },
+            "waiting": {
+              "requests": 0.9956809994942392,
+              "tokens": 0.9908507778879768
+            }
+          },
+          "run_number": 6
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9823628258723307,
+              "tokens": 0.9763387743941023
+            },
+            "running": {
+              "requests": 0.5622992834139326,
+              "tokens": 0.34147362193172
+            },
+            "waiting": {
+              "requests": 0.9953270151817752,
+              "tokens": 0.9880174122943918
+            }
+          },
+          "run_number": 7
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9907222690376101,
+              "tokens": 0.9991447691161024
+            },
+            "running": {
+              "requests": 0.5013978882471735,
+              "tokens": 0.26688262619206005
+            },
+            "waiting": {
+              "requests": 0.9967775632786466,
+              "tokens": 0.9938013296100017
+            }
+          },
+          "run_number": 8
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9856645285787861,
+              "tokens": 0.9869745854466407
+            },
+            "running": {
+              "requests": 0.5216203479597805,
+              "tokens": 0.2558290552687229
+            },
+            "waiting": {
+              "requests": 0.9864609383413984,
+              "tokens": 0.9858153545082962
+            }
+          },
+          "run_number": 9
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9921127628580736,
+              "tokens": 0.9908943506069329
+            },
+            "running": {
+              "requests": 0.48912671662871904,
+              "tokens": 0.26818887615754855
+            },
+            "waiting": {
+              "requests": 0.9900019503418805,
+              "tokens": 0.9956129611539447
+            }
+          },
+          "run_number": 10
+        },
+        {
+          "nrmse": {
+            "handoff": {
+              "requests": 0.9933221352759564,
+              "tokens": 0.9945119938092146
+            },
+            "running": {
+              "requests": 0.4378022699868143,
+              "tokens": 0.2663789763478689
+            },
+            "waiting": {
+              "requests": 0.9850770780442862,
+              "tokens": 0.9945063833783784
+            }
+          },
+          "run_number": 11
+        }
+      ]
+    }
+  },
+  "missing_field_audit": {
+    "conclusion": "existing sealed telemetry is sufficient for three-stage conservation replay",
+    "coverage": {
+      "sr-control-v1-balanced-l55-on_off_burst-test-20260810T083512Z": {
+        "attempts_total": 231,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 231,
+        "excluded_prefill_internal_token_events": 231,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 231
+      },
+      "sr-control-v1-balanced-l55-on_off_burst-train-20260810T080724Z": {
+        "attempts_total": 233,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 233,
+        "excluded_prefill_internal_token_events": 233,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 233
+      },
+      "sr-control-v1-balanced-l55-on_off_burst-validation-20260810T082115Z": {
+        "attempts_total": 236,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 236,
+        "excluded_prefill_internal_token_events": 236,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 236
+      },
+      "sr-control-v1-balanced-l55-poisson-test-20260810T075350Z": {
+        "attempts_total": 175,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 175,
+        "excluded_prefill_internal_token_events": 175,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 175
+      },
+      "sr-control-v1-balanced-l55-poisson-train-20260810T072616Z": {
+        "attempts_total": 202,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 202,
+        "excluded_prefill_internal_token_events": 202,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 202
+      },
+      "sr-control-v1-balanced-l55-poisson-validation-20260810T074003Z": {
+        "attempts_total": 215,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 215,
+        "excluded_prefill_internal_token_events": 215,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 215
+      },
+      "sr-control-v1-balanced-l75-on_off_burst-test-20260810T110928Z": {
+        "attempts_total": 305,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 305,
+        "excluded_prefill_internal_token_events": 305,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 305
+      },
+      "sr-control-v1-balanced-l75-on_off_burst-train-20260810T104050Z": {
+        "attempts_total": 305,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 305,
+        "excluded_prefill_internal_token_events": 305,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 305
+      },
+      "sr-control-v1-balanced-l75-on_off_burst-validation-20260810T105508Z": {
+        "attempts_total": 309,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 309,
+        "excluded_prefill_internal_token_events": 309,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 309
+      },
+      "sr-control-v1-balanced-l75-poisson-test-20260810T102650Z": {
+        "attempts_total": 247,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 247,
+        "excluded_prefill_internal_token_events": 247,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 247
+      },
+      "sr-control-v1-balanced-l75-poisson-train-20260810T084905Z": {
+        "attempts_total": 271,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 271,
+        "excluded_prefill_internal_token_events": 271,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 271
+      },
+      "sr-control-v1-balanced-l75-poisson-validation-20260810T090318Z": {
+        "attempts_total": 306,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 306,
+        "excluded_prefill_internal_token_events": 306,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 306
+      },
+      "sr-control-v1-balanced-l92-on_off_burst-test-20260810T123629Z": {
+        "attempts_total": 365,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 365,
+        "excluded_prefill_internal_token_events": 365,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 365
+      },
+      "sr-control-v1-balanced-l92-on_off_burst-train-20260810T120709Z": {
+        "attempts_total": 371,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 371,
+        "excluded_prefill_internal_token_events": 371,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 371
+      },
+      "sr-control-v1-balanced-l92-on_off_burst-validation-20260810T122145Z": {
+        "attempts_total": 375,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 375,
+        "excluded_prefill_internal_token_events": 375,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 375
+      },
+      "sr-control-v1-balanced-l92-poisson-test-20260810T115250Z": {
+        "attempts_total": 305,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 305,
+        "excluded_prefill_internal_token_events": 305,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 305
+      },
+      "sr-control-v1-balanced-l92-poisson-train-20260810T112342Z": {
+        "attempts_total": 315,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 315,
+        "excluded_prefill_internal_token_events": 315,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 315
+      },
+      "sr-control-v1-balanced-l92-poisson-validation-20260810T113808Z": {
+        "attempts_total": 367,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 367,
+        "excluded_prefill_internal_token_events": 367,
+        "ignored_without_pd_route": 0,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 367
+      },
+      "sr-control-v1-mixed-bimodal-l55-on_off_burst-test-20260810T140110Z": {
+        "attempts_total": 296,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 278,
+        "excluded_prefill_internal_token_events": 278,
+        "ignored_without_pd_route": 18,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 278
+      },
+      "sr-control-v1-mixed-bimodal-l55-on_off_burst-train-20260810T133300Z": {
+        "attempts_total": 293,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 276,
+        "excluded_prefill_internal_token_events": 276,
+        "ignored_without_pd_route": 17,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 276
+      },
+      "sr-control-v1-mixed-bimodal-l55-on_off_burst-validation-20260810T134703Z": {
+        "attempts_total": 301,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 291,
+        "excluded_prefill_internal_token_events": 291,
+        "ignored_without_pd_route": 10,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 291
+      },
+      "sr-control-v1-mixed-bimodal-l55-poisson-test-20260810T131912Z": {
+        "attempts_total": 231,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 226,
+        "excluded_prefill_internal_token_events": 226,
+        "ignored_without_pd_route": 5,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 226
+      },
+      "sr-control-v1-mixed-bimodal-l55-poisson-train-20260810T125102Z": {
+        "attempts_total": 257,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 253,
+        "excluded_prefill_internal_token_events": 253,
+        "ignored_without_pd_route": 4,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 253
+      },
+      "sr-control-v1-mixed-bimodal-l55-poisson-validation-20260810T130501Z": {
+        "attempts_total": 292,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 284,
+        "excluded_prefill_internal_token_events": 284,
+        "ignored_without_pd_route": 8,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 284
+      },
+      "sr-control-v1-mixed-bimodal-l75-on_off_burst-test-20260810T152721Z": {
+        "attempts_total": 378,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 353,
+        "excluded_prefill_internal_token_events": 353,
+        "ignored_without_pd_route": 25,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 353
+      },
+      "sr-control-v1-mixed-bimodal-l75-on_off_burst-train-20260810T145818Z": {
+        "attempts_total": 396,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 364,
+        "excluded_prefill_internal_token_events": 364,
+        "ignored_without_pd_route": 32,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 364
+      },
+      "sr-control-v1-mixed-bimodal-l75-on_off_burst-validation-20260810T151247Z": {
+        "attempts_total": 386,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 367,
+        "excluded_prefill_internal_token_events": 367,
+        "ignored_without_pd_route": 19,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 367
+      },
+      "sr-control-v1-mixed-bimodal-l75-poisson-test-20260810T144401Z": {
+        "attempts_total": 331,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 322,
+        "excluded_prefill_internal_token_events": 322,
+        "ignored_without_pd_route": 9,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 322
+      },
+      "sr-control-v1-mixed-bimodal-l75-poisson-train-20260810T141509Z": {
+        "attempts_total": 335,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 327,
+        "excluded_prefill_internal_token_events": 327,
+        "ignored_without_pd_route": 8,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 327
+      },
+      "sr-control-v1-mixed-bimodal-l75-poisson-validation-20260810T142927Z": {
+        "attempts_total": 384,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 370,
+        "excluded_prefill_internal_token_events": 370,
+        "ignored_without_pd_route": 14,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 370
+      },
+      "sr-control-v1-mixed-bimodal-l92-on_off_burst-test-20260810T165600Z": {
+        "attempts_total": 464,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 431,
+        "excluded_prefill_internal_token_events": 431,
+        "ignored_without_pd_route": 33,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 431
+      },
+      "sr-control-v1-mixed-bimodal-l92-on_off_burst-train-20260810T162614Z": {
+        "attempts_total": 466,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 427,
+        "excluded_prefill_internal_token_events": 427,
+        "ignored_without_pd_route": 39,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 427
+      },
+      "sr-control-v1-mixed-bimodal-l92-on_off_burst-validation-20260810T164101Z": {
+        "attempts_total": 478,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 445,
+        "excluded_prefill_internal_token_events": 445,
+        "ignored_without_pd_route": 33,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 445
+      },
+      "sr-control-v1-mixed-bimodal-l92-poisson-test-20260810T161131Z": {
+        "attempts_total": 429,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 411,
+        "excluded_prefill_internal_token_events": 411,
+        "ignored_without_pd_route": 18,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 411
+      },
+      "sr-control-v1-mixed-bimodal-l92-poisson-train-20260810T154140Z": {
+        "attempts_total": 422,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 408,
+        "excluded_prefill_internal_token_events": 408,
+        "ignored_without_pd_route": 14,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 408
+      },
+      "sr-control-v1-mixed-bimodal-l92-poisson-validation-20260810T155628Z": {
+        "attempts_total": 456,
+        "complete_fraction": 1.0,
+        "complete_lifecycle": 437,
+        "excluded_prefill_internal_token_events": 437,
+        "ignored_without_pd_route": 19,
+        "invalid_stage_order": 0,
+        "missing_admission": 0,
+        "missing_kv_ready": 0,
+        "missing_trace": 0,
+        "pd_routed_attempts": 437
+      }
+    },
+    "failed_checks": [],
+    "missing_fields": [],
+    "schema_version": "servingrom.transition-inventory-missing-fields.v1"
+  },
+  "next_step": "evaluate stage-flow model and redesign only failed transition heads",
+  "observed_flow_conservation_pass": true,
+  "observed_flow_replay": {
+    "test": {
+      "handoff": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "running": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "waiting": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      }
+    },
+    "train": {
+      "handoff": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "running": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "waiting": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      }
+    },
+    "validation": {
+      "handoff": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "running": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "waiting": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      }
+    }
+  },
+  "schema_version": "servingrom.step15c2b1.result.v1",
+  "selection": {
+    "observed_flow_conservation_pass": true,
+    "ridge": 1.0,
+    "selection_split": "validation",
+    "test_accessed": true,
+    "validation_score": 0.7885955143615474
+  },
+  "transition_flow_model_trained": true
+}

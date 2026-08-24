@@ -1,0 +1,95 @@
+{
+  "checks": {
+    "train.handoff.requests.exact": true,
+    "train.handoff.requests.nrmse": true,
+    "train.handoff.tokens.exact": true,
+    "train.handoff.tokens.nrmse": true,
+    "train.running.requests.exact": true,
+    "train.running.requests.nrmse": true,
+    "train.running.tokens.exact": true,
+    "train.running.tokens.nrmse": true,
+    "train.waiting.requests.exact": true,
+    "train.waiting.requests.nrmse": true,
+    "train.waiting.tokens.exact": true,
+    "train.waiting.tokens.nrmse": true,
+    "validation.handoff.requests.exact": true,
+    "validation.handoff.requests.nrmse": true,
+    "validation.handoff.tokens.exact": true,
+    "validation.handoff.tokens.nrmse": true,
+    "validation.running.requests.exact": true,
+    "validation.running.requests.nrmse": true,
+    "validation.running.tokens.exact": true,
+    "validation.running.tokens.nrmse": true,
+    "validation.waiting.requests.exact": true,
+    "validation.waiting.requests.nrmse": true,
+    "validation.waiting.tokens.exact": true,
+    "validation.waiting.tokens.nrmse": true
+  },
+  "metrics": {
+    "train": {
+      "handoff": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "running": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "waiting": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      }
+    },
+    "validation": {
+      "handoff": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "running": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      },
+      "waiting": {
+        "requests": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        },
+        "tokens": {
+          "exact_fraction": 1.0,
+          "nrmse": 0.0
+        }
+      }
+    }
+  },
+  "pass": true
+}

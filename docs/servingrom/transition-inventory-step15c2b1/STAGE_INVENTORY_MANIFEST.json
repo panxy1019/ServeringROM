@@ -1,0 +1,29 @@
+{
+  "a_b_symmetry": "same construction for both decoders; differential=A-B",
+  "boundaries": {
+    "handoff": [
+      "p_to_d_route",
+      "kv_ready"
+    ],
+    "running": [
+      "first_decode_scheduler_membership",
+      "terminal"
+    ],
+    "waiting": [
+      "kv_ready",
+      "first_decode_scheduler_membership"
+    ]
+  },
+  "fast_window_ms": 200,
+  "quantities": [
+    "requests",
+    "tokens"
+  ],
+  "schema_version": "servingrom.stage-inventory.v1",
+  "stages": [
+    "handoff",
+    "waiting",
+    "running"
+  ],
+  "token_semantics": "expected_output_tokens minus cumulative emissions strictly before each boundary"
+}

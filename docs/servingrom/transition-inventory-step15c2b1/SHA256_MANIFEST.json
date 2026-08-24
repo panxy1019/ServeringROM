@@ -1,0 +1,16 @@
+{
+  "artifacts": {
+    "FROZEN_SELECTION_BEFORE_TEST.json": "56fe5d24bf7c60b0d38b0ad8d281849e68e6219c5d88f8822f9288c4a52f4c9b",
+    "MISSING_FIELD_AUDIT.json": "d6e7ec505a87ebbae99246a2dca45da0b8a0f5e1a79bc1946279de7874c6b324",
+    "OBSERVED_FLOW_REPLAY.json": "c4e388d729df399d6f25ee1374e184c9908e87bf7a85d0303559c783e8a3836f",
+    "STAGE_INVENTORY_MANIFEST.json": "7fee308c2ea3efeab15f8ceb2080656309c8307e30609f5ea3d4ea59879f9766",
+    "STEP15C2B1_TRANSITION_INVENTORY_REPORT.md": "c87cae3497097fbeaf360b2d57458ee69efacd0fa32984d87b68bd22a20d6243",
+    "TRANSITION_FLOW_ABLATION.json": "23585a0caf1b88a175d9d4746e912cd45f416626c6cad58e1dfaf731d2cb45a7",
+    "evaluation/final_metrics.json": "118686114bef3bcdd6c173fbb0af43cb16ce419761ee135563207d93bacdf848",
+    "models/transition_service_flow_model.npz": "2cdccbc50abbaa3f50bfc484efeea7cd6ce4030a521bca006b3a3c5447692381",
+    "sidecar/stage_inventory_200ms.parquet": "8a5af83b846184efaedf24ad190a6ea19bef164d2df2f09c3a47781c7f9928ef"
+  },
+  "dataset_sha256_manifest": "1ad46fcaadc6878db5a5f801d38ad95a8da991de2eee1f75f5b59f89363b5504",
+  "model_id": "servingrom-transition-inventory-v1",
+  "schema_version": "servingrom.step15c2b1.sha256-manifest.v1"
+}

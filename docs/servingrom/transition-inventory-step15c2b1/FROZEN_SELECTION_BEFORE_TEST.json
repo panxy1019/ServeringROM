@@ -1,0 +1,7 @@
+{
+  "observed_flow_conservation_pass": true,
+  "ridge": 1.0,
+  "selection_split": "validation",
+  "test_accessed": false,
+  "validation_score": 0.7885955143615474
+}
