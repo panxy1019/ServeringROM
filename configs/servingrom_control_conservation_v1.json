@@ -1,0 +1,16 @@
+{
+  "schema_version": "servingrom.control-conservation.config.v1",
+  "model_id": "servingrom-control-conservation-v1",
+  "dataset_id": "servingrom-control-dataset-v1",
+  "frozen_representation": "scheme2_common_differential_block_pod/gc12-physical-q2",
+  "dt_seconds": 0.2,
+  "candidate_ridges": [0.0001, 0.01, 1.0, 10.0, 100.0],
+  "maximum_spectral_radius": 1.01,
+  "maximum_global_rollout_degradation": 0.1,
+  "maximum_slow_kpi_degradation": 0.1,
+  "maximum_core_rollout_nrmse": 0.7,
+  "preferred_core_rollout_nrmse": 0.65,
+  "minimum_improvement_over_step15c2a": 0.0,
+  "minimum_m1_relative_improvement_for_m2": 0.02,
+  "m2_common_loads": ["total_running", "total_remaining_tokens"]
+}
