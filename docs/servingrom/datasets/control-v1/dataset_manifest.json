@@ -1,0 +1,13 @@
+{
+  "dataset_id": "servingrom-control-dataset-v1",
+  "dimensions": {
+    "D": 31,
+    "U": 1,
+    "X": 1804,
+    "X_next": 1804
+  },
+  "immutable": true,
+  "run_count": 36,
+  "source_campaign_manifest_sha256": "291a98d8be6c4d2ce32c572c4889df66a7d7e4807916b7bbeb8fb8b357b75cd5",
+  "split_policy": "whole-run isolation; seed 101=train, 202=validation, 303=test"
+}

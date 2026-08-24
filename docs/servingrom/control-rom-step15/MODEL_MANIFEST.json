@@ -1,0 +1,90 @@
+{
+  "artifacts": {
+    "STEP15_CONTROL_ROM_REPORT.md": "1d9c1728f1c1890c93c1d2777556a63337837463060670023e11bb5a413dfda2",
+    "evaluation/candidates.json": "7798ef0c0e7a775777f45d7529da949d21b48e1ddcff73bed3cb35503c78101b",
+    "evaluation/final_metrics.json": "38200b2476181bfedc6ed19517b5d8e3e1e5c9552d6b0c47e18d428dd8bf0cf6",
+    "evaluation/frozen_selection_before_test.json": "93f14be6be06de793733eeda2f208c14b35175bb7566f44805f02002a08d3494",
+    "models/final_fast_model.npz": "edd2f0e765c1b06a4549b7a6a9a6201dc99088469b0fb2291fd088e7717598bb",
+    "models/slow_kpi_head.npz": "a562ca526f04f6a313a614c6feb745ad9179a4b438e7d23ccf3a5f3cd6df2b2a",
+    "pod_basis.npy": "a3aa748fa3ecb08e8d01c8d57cf2a96e78884df2630765d5c1be3367ad81e748",
+    "pod_basis_candidates.npy": "49cb850cfd66ffd98b8face360c76a01e1598db2c10d336b4392c3807fbd9dba",
+    "pod_control_imbalance_reconstruction.json": "76fd89cde2f593dc8c2353ff9a0ce0fab2b23e1d9f97883e0b5319e9e224bcc2",
+    "pod_eigenvalues.npy": "d7a6f24a78c6b30211996ff39ecc38be61400cc12bb0493df51ebf120be7df6f",
+    "pod_spectrum.json": "3529fd86b504552a001722e1778d0db983de51c5f0cc8c138f0223ad5fdbb38b",
+    "preprocessing/d_normalizer.json": "f996143258ff681ca5c9342daf219b95b9c68527b0bb2aedbc949e8642dfc734",
+    "preprocessing/slow_y_normalizer.json": "214f8c9441b1e33cd6c80683a9e647e50b981f63d1a38e5bc9267cb95ee09d0b",
+    "preprocessing/train_audit.json": "2f7fd31a75de83c97a5fe58c9e2983b69fd4382991c09128254f5f91b8d0eee6",
+    "preprocessing/u_normalizer.json": "d8cb9d8296a09bef620fea766dcbcb2c8e7bcb77cc5f0ad715edd544e02cbbd7",
+    "preprocessing/x_normalizer.json": "2e9455c5627f354e8f7a6de4493ef3f379e38f57852204026bff0736dd321a80"
+  },
+  "dataset_id": "servingrom-control-dataset-v1",
+  "dataset_sha256_manifest": "1ad46fcaadc6878db5a5f801d38ad95a8da991de2eee1f75f5b59f89363b5504",
+  "model_id": "servingrom-control-rom-v1",
+  "readiness": {
+    "control_rom_ready": false,
+    "gates": {
+      "all_metrics_finite": true,
+      "control_direction": true,
+      "pod_control_imbalance_reconstruction": false,
+      "spectral_radius": true,
+      "test_rollout_skill_positive": true,
+      "test_slow_kpi_beats_mean": true,
+      "validation_rollout_skill_positive": true,
+      "validation_slow_kpi_beats_mean": true
+    }
+  },
+  "selection": {
+    "bilinear_retained": false,
+    "bilinear_validation_relative_improvement": 0.00033372397020596994,
+    "bilinear_validation_rollout_nrmse": 0.7227856072289118,
+    "linear_validation_rollout_nrmse": 0.7230268986360904,
+    "model_type": "linear",
+    "rank": 16,
+    "ridge": 100.0,
+    "selection_split": "validation",
+    "spectral_radius": 0.9277120640609109,
+    "test_accessed": true
+  },
+  "test_runs": [
+    "sr-control-v1-balanced-l55-poisson-test-20260810T075350Z",
+    "sr-control-v1-balanced-l55-on_off_burst-test-20260810T083512Z",
+    "sr-control-v1-balanced-l75-poisson-test-20260810T102650Z",
+    "sr-control-v1-balanced-l75-on_off_burst-test-20260810T110928Z",
+    "sr-control-v1-balanced-l92-poisson-test-20260810T115250Z",
+    "sr-control-v1-balanced-l92-on_off_burst-test-20260810T123629Z",
+    "sr-control-v1-mixed-bimodal-l55-poisson-test-20260810T131912Z",
+    "sr-control-v1-mixed-bimodal-l55-on_off_burst-test-20260810T140110Z",
+    "sr-control-v1-mixed-bimodal-l75-poisson-test-20260810T144401Z",
+    "sr-control-v1-mixed-bimodal-l75-on_off_burst-test-20260810T152721Z",
+    "sr-control-v1-mixed-bimodal-l92-poisson-test-20260810T161131Z",
+    "sr-control-v1-mixed-bimodal-l92-on_off_burst-test-20260810T165600Z"
+  ],
+  "train_runs": [
+    "sr-control-v1-balanced-l55-poisson-train-20260810T072616Z",
+    "sr-control-v1-balanced-l55-on_off_burst-train-20260810T080724Z",
+    "sr-control-v1-balanced-l75-poisson-train-20260810T084905Z",
+    "sr-control-v1-balanced-l75-on_off_burst-train-20260810T104050Z",
+    "sr-control-v1-balanced-l92-poisson-train-20260810T112342Z",
+    "sr-control-v1-balanced-l92-on_off_burst-train-20260810T120709Z",
+    "sr-control-v1-mixed-bimodal-l55-poisson-train-20260810T125102Z",
+    "sr-control-v1-mixed-bimodal-l55-on_off_burst-train-20260810T133300Z",
+    "sr-control-v1-mixed-bimodal-l75-poisson-train-20260810T141509Z",
+    "sr-control-v1-mixed-bimodal-l75-on_off_burst-train-20260810T145818Z",
+    "sr-control-v1-mixed-bimodal-l92-poisson-train-20260810T154140Z",
+    "sr-control-v1-mixed-bimodal-l92-on_off_burst-train-20260810T162614Z"
+  ],
+  "validation_runs": [
+    "sr-control-v1-balanced-l55-poisson-validation-20260810T074003Z",
+    "sr-control-v1-balanced-l55-on_off_burst-validation-20260810T082115Z",
+    "sr-control-v1-balanced-l75-poisson-validation-20260810T090318Z",
+    "sr-control-v1-balanced-l75-on_off_burst-validation-20260810T105508Z",
+    "sr-control-v1-balanced-l92-poisson-validation-20260810T113808Z",
+    "sr-control-v1-balanced-l92-on_off_burst-validation-20260810T122145Z",
+    "sr-control-v1-mixed-bimodal-l55-poisson-validation-20260810T130501Z",
+    "sr-control-v1-mixed-bimodal-l55-on_off_burst-validation-20260810T134703Z",
+    "sr-control-v1-mixed-bimodal-l75-poisson-validation-20260810T142927Z",
+    "sr-control-v1-mixed-bimodal-l75-on_off_burst-validation-20260810T151247Z",
+    "sr-control-v1-mixed-bimodal-l92-poisson-validation-20260810T155628Z",
+    "sr-control-v1-mixed-bimodal-l92-on_off_burst-validation-20260810T164101Z"
+  ]
+}

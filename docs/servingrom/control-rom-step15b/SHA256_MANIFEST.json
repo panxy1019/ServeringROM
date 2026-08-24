@@ -1,0 +1,49 @@
+{
+  "artifacts": {
+    "FROZEN_SELECTION_BEFORE_TEST.json": "7066157c55234c37fd1e9019b1434059883d1966ea6347298faf5d39fba20417",
+    "SCHEME1_GATE_RESULT.json": "cefaeffe83d150707702d8b5c960d6040794bee53bb470bc852ddb9f4dfe4ba4",
+    "STEP15B_CONTROL_RELEVANT_REDESIGN_REPORT.md": "bce9b5576eeab069e652164c864c1180236b272727b68cc53adb4ff1708f6739",
+    "evaluation/final_metrics.json": "0c41d7f775343d8280d08c59511721ff06115e4f5057065684cc6bf052079553",
+    "models/diagnostic_not_ready_control_dynamics.npz": "63710dbfb15b2540edf49439fdf88029fa35b5fa48407c85d9205ea502183151",
+    "models/diagnostic_not_ready_slow_kpi_head.npz": "0243c5fe1638181372d54f7714f06b3a5a3a46fcd3476d4b9c8c55b98ddc3252",
+    "normalization/d_train_only.json": "f996143258ff681ca5c9342daf219b95b9c68527b0bb2aedbc949e8642dfc734",
+    "normalization/u_train_only.json": "d8cb9d8296a09bef620fea766dcbcb2c8e7bcb77cc5f0ad715edd544e02cbbd7",
+    "normalization/x_train_only.json": "2e9455c5627f354e8f7a6de4493ef3f379e38f57852204026bff0736dd321a80",
+    "scheme1/ablation.json": "d66f1da6fa2ede3a5c9f228dd15024f2bb234ad451a1863396181ce7572a1e92",
+    "scheme1/all_scalar_normalization.json": "23decc43b006008adc427b9a6a25769380fb3ff6581e7a94392623b6bd9dc7ca",
+    "scheme1/core3_normalization.json": "dafb9481a932400e60b1cf4e2a2a0f1bd236ac2821b199d486d5f7b4d2586293",
+    "scheme1/feature_manifest.json": "726b96e51b6360b07785362fa1a5be1bec91ca3d73ec8a4512cc9fca9f27fa29",
+    "scheme1/global_pod_basis_candidates.npy": "d5141b2f2c65e8ac3d3dfe1ddec4659dc9e3d90d714aa164df2b78785c6a9b72",
+    "scheme1/selected_binned_normalization.json": "7f7cd6db1d2a1e28a99a6ff14cdb01312e55042fd0368b567a246733531b9a01",
+    "scheme2/common_normalization.json": "390a3c7e11cc8f180aee90943805dac5bb1ce07263afd1e16d105953cb5fb6e3",
+    "scheme2/core_imbalance_normalization.json": "dafb9481a932400e60b1cf4e2a2a0f1bd236ac2821b199d486d5f7b4d2586293",
+    "scheme2/differential_basis_candidates.npy": "5ec33fe08aff0643bd8ec09042fa42e718ffb3ef9a4e0b95b75aeda1171ff4e2",
+    "scheme2/differential_normalization.json": "b475305274e5839450b419296b07c90e3316bed4f59a6d578d97eb95ecda2467",
+    "scheme2/feature_manifest.json": "7319bbca49a35a1d355f0c9445b1f1d26a81c54a4941e1a4b8df20b22d502cb6",
+    "scheme2/final_differential_basis.npy": "07067ea7abbd118a855fd08cead71dfd2d02439b0326c178bba578dd31b1707c",
+    "scheme2/final_global_common_basis.npy": "14d86d7e20fb3630b2abaf034bceb7b2aba1eb0ce0869c8859200a1d3b1a83de",
+    "scheme2/global_common_basis_candidates.npy": "061948ec6f817f776f970bd3ffb549881dd2287decf6625771b759da393c8d01",
+    "scheme2/global_normalization.json": "2cc1a9e965b803b9caae1ff66e4f01e83c075a8c34e09306a42cde41d26add80",
+    "scheme2/rank_grid.json": "63a6a43055819da52c1a37c2aa0abba5b51002ae6bc7ad479bbe18effc958515",
+    "scheme2/spectrum.json": "d7ede7f71bce9f1ed0b9b7a901b63b9a4d8b9d3b202cdb70356d67052ca5884b"
+  },
+  "baseline_manifest_sha256": "06b9ced496c09f57bd065548eaa24d519f25083a436999b385b950435dd6496c",
+  "dataset_sha256_manifest": "1ad46fcaadc6878db5a5f801d38ad95a8da991de2eee1f75f5b59f89363b5504",
+  "model_id": "servingrom-control-redesign-v1",
+  "readiness": {
+    "control_representation_ready": true,
+    "control_rom_ready": false
+  },
+  "selection": {
+    "candidate": "gc12-diff2",
+    "descriptor_count": 2,
+    "dynamics_ridge": 100.0,
+    "pod_rank": 12,
+    "reduced_dimension": 14,
+    "scheme": "scheme2_common_differential_block_pod",
+    "selection_split": "validation",
+    "slow_ridge": 1.0,
+    "test_accessed": false,
+    "validation_dynamics_gate_passed": false
+  }
+}

@@ -24,6 +24,11 @@ checkpoints/
 *.ckpt
 *.npz
 *.npy
+*.parquet
+*.arrow
+*.feather
+*.pkl
+*.pickle
 *.7z
 *.zip
 *.tar

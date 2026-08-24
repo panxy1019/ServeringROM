@@ -1,0 +1,157 @@
+{
+  "dataset_id": "servingrom-qwen36-1p2d-d2-rom-v1.1-slo2000",
+  "file_count": 30,
+  "files": [
+    {
+      "path": "bin_schema.yaml",
+      "sha256": "01a5bd1919d9f9ecb141e84ad1837006b1a5b8760fb3759bb807ec1f2b08af12",
+      "size_bytes": 643
+    },
+    {
+      "path": "canonicalization_report.json",
+      "sha256": "cec62270324373c66af0cf6326dcf6c983a7fa408f7ff9962bfced0c34502722",
+      "size_bytes": 46799
+    },
+    {
+      "path": "capacity_summary.json",
+      "sha256": "7118915c18ce3987bddf1eebcf9d0ebda3e72f058e34b7abeaedbce7078dd68a",
+      "size_bytes": 54800
+    },
+    {
+      "path": "collection_progress.json",
+      "sha256": "1b5a9d1d34e0e972c2b4f87b961a94d3aedc4979ca0339b67a1f2953475aae2d",
+      "size_bytes": 83619
+    },
+    {
+      "path": "disturbance_index.json",
+      "sha256": "94742fc916489a70ef2afefe98eb2ea8ffc6c31c5f365b04e25c249d8a6233b3",
+      "size_bytes": 8255
+    },
+    {
+      "path": "output_index.json",
+      "sha256": "9c3ceed3df82fdc0ebff7127dd9220e17e616de94c6a10478442e1053f3956d3",
+      "size_bytes": 4556
+    },
+    {
+      "path": "run_manifest.parquet",
+      "sha256": "7d3a6064613e95b7daf6af37679fac2118eca61eb6392c32107b0c6f9aa36ae5",
+      "size_bytes": 19181
+    },
+    {
+      "path": "snapshot_schema.json",
+      "sha256": "72be70ed9d2f08d0b48813fcd7e1f1bf3eb4c10464822f68d0c511a94431eb7b",
+      "size_bytes": 579
+    },
+    {
+      "path": "state_index.json",
+      "sha256": "3ddad259afaf92b6dad1d36c64541f855e64d67ba3f2418117c1cfd34f233b71",
+      "size_bytes": 657636
+    },
+    {
+      "path": "static_config.json",
+      "sha256": "b860ca3748aece8317372d4c602e1791cc595946f9f088d37afcea20bc072b77",
+      "size_bytes": 1178
+    },
+    {
+      "path": "test/D.npy",
+      "sha256": "54333644df4e3e4a4f1b67863afd1d4b26be45d4ed3164d1b8f32bdc5cae462d",
+      "size_bytes": 7142528
+    },
+    {
+      "path": "test/MU.npy",
+      "sha256": "0fbf0f501be15b1088ac06174ae1dbdb95e46a8d8383f6a7c245636b24ec87d7",
+      "size_bytes": 2764928
+    },
+    {
+      "path": "test/X.npy",
+      "sha256": "630b1cefc2ca780b6065977114ddbaef93237dd11c0a00879a01ccde1e5dbc2d",
+      "size_bytes": 415641728
+    },
+    {
+      "path": "test/X_next.npy",
+      "sha256": "9ea02b9adee8fae0e122138979d29ab705ff243bc5841c3b016203f5b6d468d0",
+      "size_bytes": 415641728
+    },
+    {
+      "path": "test/Y.npy",
+      "sha256": "419db85f3afea098df95776a6b8b1cb15e5f567cf85c3fb6cf24818ca7c150d7",
+      "size_bytes": 4377728
+    },
+    {
+      "path": "test/transient/D.npy",
+      "sha256": "69dd31b82033660b118311fbea417de5cdaa474eb049ceb7662fcf7dc115638c",
+      "size_bytes": 3571328
+    },
+    {
+      "path": "test/transient/MU.npy",
+      "sha256": "c8fc40cdd48b26fbddcfb87bdc103e5c53ea57e86439010c596572aeeaa81083",
+      "size_bytes": 1382528
+    },
+    {
+      "path": "test/transient/X.npy",
+      "sha256": "ef4d1fdda9ba6f7087c366f399192ebe105c5676f401555297897e80069e779e",
+      "size_bytes": 207820928
+    },
+    {
+      "path": "test/transient/X_next.npy",
+      "sha256": "061d34b5e5da2b1b55ac4db5491cb45d6c4853f4853d612d1e715e04fc00ef00",
+      "size_bytes": 207820928
+    },
+    {
+      "path": "test/transient/Y.npy",
+      "sha256": "4146f8b542f0fc5e580fe466d710028abc36ad094c9bcef478516d82ac006b4f",
+      "size_bytes": 2188928
+    },
+    {
+      "path": "train/D.npy",
+      "sha256": "52ca3c3636c780b1479c9dce75b9f1b4b8b79c18e1d5b5637d352ed43835f6df",
+      "size_bytes": 7142528
+    },
+    {
+      "path": "train/MU.npy",
+      "sha256": "0fbf0f501be15b1088ac06174ae1dbdb95e46a8d8383f6a7c245636b24ec87d7",
+      "size_bytes": 2764928
+    },
+    {
+      "path": "train/X.npy",
+      "sha256": "7ce670032bb29b1ea1fdf9a7ce5a979f9e9b50ef390fcfacaec11eb32b2c1eac",
+      "size_bytes": 415641728
+    },
+    {
+      "path": "train/X_next.npy",
+      "sha256": "a67ba5b77b37adcf0179147fe8f6045cba447247d6d0e2b0ba4ed81fe447a49a",
+      "size_bytes": 415641728
+    },
+    {
+      "path": "train/Y.npy",
+      "sha256": "8ad2c9e93a89b37afeb2ea40f0972fff22b3002602b2f3b412c816d9b55386e0",
+      "size_bytes": 4377728
+    },
+    {
+      "path": "validation/D.npy",
+      "sha256": "a01f3b05bcfcb514c406316db0a224f90d8b62a4648f5aa7ea09d14e2d0f892f",
+      "size_bytes": 7142528
+    },
+    {
+      "path": "validation/MU.npy",
+      "sha256": "0fbf0f501be15b1088ac06174ae1dbdb95e46a8d8383f6a7c245636b24ec87d7",
+      "size_bytes": 2764928
+    },
+    {
+      "path": "validation/X.npy",
+      "sha256": "287b0d38d0af399a47d3d1e24eff201fda3af9e2a4cc33dd4f34db51d2df56c5",
+      "size_bytes": 415641728
+    },
+    {
+      "path": "validation/X_next.npy",
+      "sha256": "11d1c5895a8c7d89b94a6f889027b71e05d4330fb6a345a160efcf4e4e51f94c",
+      "size_bytes": 415641728
+    },
+    {
+      "path": "validation/Y.npy",
+      "sha256": "8f8c5b74a718aa9ada4ce38b108b094cce61ead28ac059b05f99d349d2641cf4",
+      "size_bytes": 4377728
+    }
+  ],
+  "schema_version": "1.1"
+}

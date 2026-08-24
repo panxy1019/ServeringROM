@@ -1,0 +1,31 @@
+{
+  "artifacts": {
+    "EFFECTIVE_FORCING_AUDIT.json": "024f3dbbfc43af6c632332fbe609421647c74b223eadaf03f38d68312f18ce41",
+    "FROZEN_SELECTION_BEFORE_TEST.json": "202a00dfa31df13eaa19abaf350bebd645840507fa08a5094071ec1c8353fdf9",
+    "MEMORY_ABLATION.json": "ff10388f12af3f2920a8e913e788916c2f62e0b255a402f78ee4e01c97c99a3a",
+    "MEMORY_SCHEMA.json": "831d6f8b22f6a4f1ccf84a547e0f3347c0c2849ffaf58cdf05b946d42720285f",
+    "STEP15C1_MEMORY_REDESSIGN_REPORT.md": "dd00242996d802e14d9d5621fbeb4410720388380c129475cc643df9f5b8b3ce",
+    "evaluation/final_metrics.json": "ee7d6be8cc192b9f33ce740def6629c0d929397f263d5e1a790e04685c7f84ed",
+    "models/diagnostic_not_ready_memory_dynamics.npz": "36d6d8bff6d1b3b409884b9d3550e0a4c978753b3cd9cf2a86f241c495a175a0",
+    "models/diagnostic_not_ready_slow_kpi_head.npz": "9f561937a19215f032b483e95111314f51b838825a84ab39070e1cb30c7a7127"
+  },
+  "dataset_sha256_manifest": "1ad46fcaadc6878db5a5f801d38ad95a8da991de2eee1f75f5b59f89363b5504",
+  "memory_dynamics_ready": false,
+  "model_id": "servingrom-control-memory-v1",
+  "representation_manifest_sha256": "beea779ef005e65c3c7f524ca256af789e6d8fa81903150ffefdad8eff00cb64",
+  "selection": {
+    "horizon_seconds": 1.0,
+    "horizon_steps": 5,
+    "kind": "exponential",
+    "memory_dim": 6,
+    "ridge": 10.0,
+    "scales_steps": [
+      5
+    ],
+    "selection_split": "validation",
+    "slow_ridge": 1.0,
+    "spectral_radius": 0.947826622482653,
+    "test_accessed": false,
+    "validation_strong_gate_passed": false
+  }
+}

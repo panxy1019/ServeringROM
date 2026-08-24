@@ -1,0 +1,328 @@
+{
+  "all_run_quality_pass": true,
+  "control_authority_groups": [
+    {
+      "arrival_process": "on_off_burst",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.8466719625572736,
+          "high_mean": 48.338181818181816,
+          "low_mean": -39.14545454545455
+        },
+        "running_imbalance": {
+          "cohen_d": 0.9095156765020709,
+          "high_mean": 0.4561038961038961,
+          "low_mean": -0.3181818181818182
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.12447218265944007,
+          "high_mean": 0.006753246753246753,
+          "low_mean": -0.004242424242424243
+        }
+      },
+      "load_fraction": 0.55,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6916666666666667,
+      "routed_fraction_low": 0.3103448275862069,
+      "state_effect_pass": true,
+      "workload": "balanced"
+    },
+    {
+      "arrival_process": "poisson",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.49832106613574423,
+          "high_mean": 25.822926829268294,
+          "low_mean": -18.71936507936508
+        },
+        "running_imbalance": {
+          "cohen_d": 0.6191737609725103,
+          "high_mean": 0.23609756097560974,
+          "low_mean": -0.22793650793650794
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.05631413174504681,
+          "high_mean": 0.001951219512195122,
+          "low_mean": -0.0019047619047619048
+        }
+      },
+      "load_fraction": 0.55,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6697247706422018,
+      "routed_fraction_low": 0.358974358974359,
+      "state_effect_pass": true,
+      "workload": "balanced"
+    },
+    {
+      "arrival_process": "on_off_burst",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.8151402363605148,
+          "high_mean": 42.79526315789474,
+          "low_mean": -58.34144927536232
+        },
+        "running_imbalance": {
+          "cohen_d": 0.9919985701335555,
+          "high_mean": 0.47842105263157897,
+          "low_mean": -0.5501449275362319
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.13586610703284593,
+          "high_mean": 0.004736842105263158,
+          "low_mean": -0.009855072463768115
+        }
+      },
+      "load_fraction": 0.75,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6942675159235668,
+      "routed_fraction_low": 0.2972972972972973,
+      "state_effect_pass": true,
+      "workload": "balanced"
+    },
+    {
+      "arrival_process": "poisson",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.6535683700054472,
+          "high_mean": 38.74442538593482,
+          "low_mean": -33.4016606123508
+        },
+        "running_imbalance": {
+          "cohen_d": 0.7381062692400792,
+          "high_mean": 0.34419668381932533,
+          "low_mean": -0.3227815256875973
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.09213881449717748,
+          "high_mean": 0.002287021154945683,
+          "low_mean": -0.00467047223663726
+        }
+      },
+      "load_fraction": 0.75,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.671875,
+      "routed_fraction_low": 0.31007751937984496,
+      "state_effect_pass": true,
+      "workload": "balanced"
+    },
+    {
+      "arrival_process": "on_off_burst",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.8115724180803578,
+          "high_mean": 44.70647773279352,
+          "low_mean": -52.97875
+        },
+        "running_imbalance": {
+          "cohen_d": 0.9955139845886573,
+          "high_mean": 0.5369433198380567,
+          "low_mean": -0.58
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.14552171870065447,
+          "high_mean": 0.01062753036437247,
+          "low_mean": -0.006875
+        }
+      },
+      "load_fraction": 0.92,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6878306878306878,
+      "routed_fraction_low": 0.3082706766917293,
+      "state_effect_pass": true,
+      "workload": "balanced"
+    },
+    {
+      "arrival_process": "poisson",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.9681237645089164,
+          "high_mean": 76.49953488372093,
+          "low_mean": -42.39755766621438
+        },
+        "running_imbalance": {
+          "cohen_d": 1.2073083092677677,
+          "high_mean": 0.7158139534883721,
+          "low_mean": -0.48100407055630934
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.1478685916146481,
+          "high_mean": 0.0074418604651162795,
+          "low_mean": -0.007462686567164179
+        }
+      },
+      "load_fraction": 0.92,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6915422885572139,
+      "routed_fraction_low": 0.31654676258992803,
+      "state_effect_pass": true,
+      "workload": "balanced"
+    },
+    {
+      "arrival_process": "on_off_burst",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.5858115200163907,
+          "high_mean": 39.884878048780486,
+          "low_mean": -24.053939393939395
+        },
+        "running_imbalance": {
+          "cohen_d": 0.6888722304281394,
+          "high_mean": 0.38926829268292684,
+          "low_mean": -0.22484848484848485
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.11671115759865938,
+          "high_mean": 0.010731707317073172,
+          "low_mean": -0.0018181818181818182
+        }
+      },
+      "load_fraction": 0.55,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6894409937888198,
+      "routed_fraction_low": 0.31313131313131315,
+      "state_effect_pass": true,
+      "workload": "mixed-bimodal"
+    },
+    {
+      "arrival_process": "poisson",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.6244375539617095,
+          "high_mean": 44.38006230529595,
+          "low_mean": -25.793185893604303
+        },
+        "running_imbalance": {
+          "cohen_d": 0.5986041334581941,
+          "high_mean": 0.3644859813084112,
+          "low_mean": -0.15481171548117154
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.049080462167143665,
+          "high_mean": 0.0020768431983385254,
+          "low_mean": -0.001195457262402869
+        }
+      },
+      "load_fraction": 0.55,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6923076923076923,
+      "routed_fraction_low": 0.3211009174311927,
+      "state_effect_pass": true,
+      "workload": "mixed-bimodal"
+    },
+    {
+      "arrival_process": "on_off_burst",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.8289192583867414,
+          "high_mean": 56.250786516853935,
+          "low_mean": -60.35923076923077
+        },
+        "running_imbalance": {
+          "cohen_d": 1.0271741410290771,
+          "high_mean": 0.5065168539325843,
+          "low_mean": -0.583076923076923
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.09601826882526601,
+          "high_mean": 0.004943820224719101,
+          "low_mean": -0.004615384615384616
+        }
+      },
+      "load_fraction": 0.75,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6888888888888889,
+      "routed_fraction_low": 0.3114754098360656,
+      "state_effect_pass": true,
+      "workload": "mixed-bimodal"
+    },
+    {
+      "arrival_process": "poisson",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.8432979490956359,
+          "high_mean": 57.248988764044945,
+          "low_mean": -59.099622641509434
+        },
+        "running_imbalance": {
+          "cohen_d": 0.9075314515555168,
+          "high_mean": 0.4750561797752809,
+          "low_mean": -0.49886792452830186
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.09491814826870755,
+          "high_mean": 0.004943820224719101,
+          "low_mean": -0.0037735849056603774
+        }
+      },
+      "load_fraction": 0.75,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6857142857142857,
+      "routed_fraction_low": 0.30708661417322836,
+      "state_effect_pass": true,
+      "workload": "mixed-bimodal"
+    },
+    {
+      "arrival_process": "on_off_burst",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.8248709461515747,
+          "high_mean": 60.2287323943662,
+          "low_mean": -63.4848
+        },
+        "running_imbalance": {
+          "cohen_d": 1.0098468764110038,
+          "high_mean": 0.6473239436619719,
+          "low_mean": -0.6053333333333333
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.09577347185585153,
+          "high_mean": 0.008450704225352112,
+          "low_mean": -0.0048
+        }
+      },
+      "load_fraction": 0.92,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6919642857142857,
+      "routed_fraction_low": 0.3108108108108108,
+      "state_effect_pass": true,
+      "workload": "mixed-bimodal"
+    },
+    {
+      "arrival_process": "poisson",
+      "effects": {
+        "remaining_imbalance": {
+          "cohen_d": 0.8038206240173874,
+          "high_mean": 41.9706976744186,
+          "low_mean": -71.24813559322034
+        },
+        "running_imbalance": {
+          "cohen_d": 0.978558926554837,
+          "high_mean": 0.49209302325581394,
+          "low_mean": -0.6040677966101695
+        },
+        "waiting_imbalance": {
+          "cohen_d": 0.17332796616425894,
+          "high_mean": 0.010697674418604652,
+          "low_mean": -0.01152542372881356
+        }
+      },
+      "load_fraction": 0.92,
+      "route_direction_pass": true,
+      "routed_fraction_high": 0.6941176470588235,
+      "routed_fraction_low": 0.29545454545454547,
+      "state_effect_pass": true,
+      "workload": "mixed-bimodal"
+    }
+  ],
+  "control_dataset_ready": true,
+  "control_identifiability_ready": true,
+  "fast_windows": 108000,
+  "runs": 36,
+  "schema_version": "servingrom.control_dataset_quality.v1",
+  "slow_windows": 4320,
+  "split_fast_windows": {
+    "test": 36000,
+    "train": 36000,
+    "validation": 36000
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "canonical_tpot_slo_ms": 100.0,
+  "canonical_ttft_slo_ms": 2000.0,
+  "dataset_id": "servingrom-qwen36-1p2d-d2-rom-v1.1-slo2000",
+  "derivation": "sealed telemetry replay with canonical SLO",
+  "disturbance_dimension": 31,
+  "output_dimension": 19,
+  "parent_dataset": "servingrom-qwen36-1p2d-d2-rom-v1",
+  "run_level_split": true,
+  "snapshot_period_ms": 200,
+  "source_dataset_manifest_sha256": "2b83e758aaec7b1ff814f7afb8585d052921e5dc0fff294f83f408532feb2518",
+  "state_dimension": 1804,
+  "static_dimension": 12,
+  "version": "1.1",
+  "window_semantics": "[t_k,t_k+1)"
+}
