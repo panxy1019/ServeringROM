@@ -1,0 +1,21 @@
+{
+  "a_b_signed_features": [],
+  "features": [
+    "phase",
+    "phase_sin",
+    "phase_cos",
+    "log_input_tokens",
+    "log_expected_tokens",
+    "log_kv_bytes",
+    "log_block_count",
+    "load",
+    "mixed_bimodal",
+    "on_off_burst",
+    "log_total_running_requests",
+    "log_total_running_tokens"
+  ],
+  "oracle_input": "observed route timestamp and routed request/token forcing",
+  "schema_version": "servingrom.phase-feature-schema.v1",
+  "selected_from": "train_only",
+  "time_alignment": "[start_wall_ns,end_wall_ns)"
+}

@@ -1,0 +1,14 @@
+{
+  "schema_version": "servingrom.phase-transition.config.v1",
+  "model_id": "servingrom-phase-transition-v1",
+  "dataset_id": "servingrom-control-dataset-v1",
+  "candidate_ridges": [0.0001, 0.01, 1.0, 10.0, 100.0],
+  "readiness": {
+    "handoff_request_nrmse": 0.70,
+    "handoff_token_nrmse": 0.70,
+    "waiting_request_nrmse": 0.70,
+    "waiting_token_nrmse": 0.70,
+    "running_request_nrmse": 0.60,
+    "running_token_nrmse": 0.40
+  }
+}

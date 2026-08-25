@@ -1,0 +1,9 @@
+{
+  "feature_set": "phase_size_load",
+  "ridge": 1.0,
+  "schema_version": "servingrom.phase-selection.v1",
+  "selection_split": "validation",
+  "test_accessed": false,
+  "validation_ready": false,
+  "validation_score": 0.7463080065984252
+}

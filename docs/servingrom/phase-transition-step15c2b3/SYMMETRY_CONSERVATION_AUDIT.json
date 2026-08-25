@@ -1,0 +1,17 @@
+{
+  "all_runs_finite": true,
+  "shared_parameters_A_B": true,
+  "signed_A_B_features": [],
+  "test_checks": {
+    "conservation": true,
+    "finite": true,
+    "handoff.requests": true,
+    "handoff.tokens": true,
+    "running.requests": true,
+    "running.tokens": true,
+    "waiting.requests": false,
+    "waiting.tokens": false
+  },
+  "test_conservation_residual_max": 0.0,
+  "validation_conservation_residual_max": 0.0
+}

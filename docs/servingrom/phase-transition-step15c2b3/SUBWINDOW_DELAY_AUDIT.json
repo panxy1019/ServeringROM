@@ -1,0 +1,50 @@
+{
+  "available_features": [
+    "route_phase",
+    "kv_ready_phase",
+    "log_input_tokens",
+    "log_expected_tokens",
+    "log_kv_bytes",
+    "log_block_count",
+    "load",
+    "mixed_bimodal",
+    "on_off_burst",
+    "log_total_running_requests",
+    "log_total_running_tokens"
+  ],
+  "count": 3752,
+  "handoff_ms": {
+    "max": 88.02478,
+    "p50": 25.051181,
+    "p75": 37.21183825,
+    "p90": 44.566090900000006,
+    "p95": 47.541116849999995,
+    "p99": 52.313411699999996
+  },
+  "route_to_enqueue_ms": {
+    "max": 85.578135,
+    "p50": 22.46706,
+    "p75": 34.43751375,
+    "p90": 41.767513900000004,
+    "p95": 44.737391550000005,
+    "p99": 49.18827025999998
+  },
+  "schema_version": "servingrom.subwindow-delay-audit.v1",
+  "split": "train",
+  "transfer_ms": {
+    "max": 28.968954,
+    "p50": 2.7242290000000002,
+    "p75": 3.48321675,
+    "p90": 5.1961379999999995,
+    "p95": 6.818280449999999,
+    "p99": 10.665970779999995
+  },
+  "waiting_ms": {
+    "max": 149.055735,
+    "p50": 33.4532535,
+    "p75": 34.97719225,
+    "p90": 36.661669100000005,
+    "p95": 37.7398199,
+    "p99": 39.71018978999999
+  }
+}

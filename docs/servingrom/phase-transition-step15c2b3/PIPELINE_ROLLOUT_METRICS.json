@@ -1,0 +1,1347 @@
+{
+  "conclusion": "Phase-conditioned timing remains below the preregistered gate. Stop before actuator realization; use the frozen oracle attribution to identify whether KV timing propagation or waiting-service timing dominates.",
+  "control_rom_ready": false,
+  "data_isolation": {
+    "heldout_read": false,
+    "new_runs_collected": false,
+    "one_p_two_d_started": false,
+    "test_accessed_after_freeze": true
+  },
+  "dataset": {
+    "manifest": {
+      "dataset_id": "servingrom-control-dataset-v1",
+      "dimensions": {
+        "D": 31,
+        "U": 1,
+        "X": 1804,
+        "X_next": 1804
+      },
+      "immutable": true,
+      "run_count": 36,
+      "source_campaign_manifest_sha256": "291a98d8be6c4d2ce32c572c4889df66a7d7e4807916b7bbeb8fb8b357b75cd5",
+      "split_policy": "whole-run isolation; seed 101=train, 202=validation, 303=test"
+    },
+    "quality": {
+      "all_run_quality_pass": true,
+      "control_authority_groups": [
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8466719625572736,
+              "high_mean": 48.338181818181816,
+              "low_mean": -39.14545454545455
+            },
+            "running_imbalance": {
+              "cohen_d": 0.9095156765020709,
+              "high_mean": 0.4561038961038961,
+              "low_mean": -0.3181818181818182
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.12447218265944007,
+              "high_mean": 0.006753246753246753,
+              "low_mean": -0.004242424242424243
+            }
+          },
+          "load_fraction": 0.55,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6916666666666667,
+          "routed_fraction_low": 0.3103448275862069,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.49832106613574423,
+              "high_mean": 25.822926829268294,
+              "low_mean": -18.71936507936508
+            },
+            "running_imbalance": {
+              "cohen_d": 0.6191737609725103,
+              "high_mean": 0.23609756097560974,
+              "low_mean": -0.22793650793650794
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.05631413174504681,
+              "high_mean": 0.001951219512195122,
+              "low_mean": -0.0019047619047619048
+            }
+          },
+          "load_fraction": 0.55,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6697247706422018,
+          "routed_fraction_low": 0.358974358974359,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8151402363605148,
+              "high_mean": 42.79526315789474,
+              "low_mean": -58.34144927536232
+            },
+            "running_imbalance": {
+              "cohen_d": 0.9919985701335555,
+              "high_mean": 0.47842105263157897,
+              "low_mean": -0.5501449275362319
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.13586610703284593,
+              "high_mean": 0.004736842105263158,
+              "low_mean": -0.009855072463768115
+            }
+          },
+          "load_fraction": 0.75,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6942675159235668,
+          "routed_fraction_low": 0.2972972972972973,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.6535683700054472,
+              "high_mean": 38.74442538593482,
+              "low_mean": -33.4016606123508
+            },
+            "running_imbalance": {
+              "cohen_d": 0.7381062692400792,
+              "high_mean": 0.34419668381932533,
+              "low_mean": -0.3227815256875973
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.09213881449717748,
+              "high_mean": 0.002287021154945683,
+              "low_mean": -0.00467047223663726
+            }
+          },
+          "load_fraction": 0.75,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.671875,
+          "routed_fraction_low": 0.31007751937984496,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8115724180803578,
+              "high_mean": 44.70647773279352,
+              "low_mean": -52.97875
+            },
+            "running_imbalance": {
+              "cohen_d": 0.9955139845886573,
+              "high_mean": 0.5369433198380567,
+              "low_mean": -0.58
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.14552171870065447,
+              "high_mean": 0.01062753036437247,
+              "low_mean": -0.006875
+            }
+          },
+          "load_fraction": 0.92,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6878306878306878,
+          "routed_fraction_low": 0.3082706766917293,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.9681237645089164,
+              "high_mean": 76.49953488372093,
+              "low_mean": -42.39755766621438
+            },
+            "running_imbalance": {
+              "cohen_d": 1.2073083092677677,
+              "high_mean": 0.7158139534883721,
+              "low_mean": -0.48100407055630934
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.1478685916146481,
+              "high_mean": 0.0074418604651162795,
+              "low_mean": -0.007462686567164179
+            }
+          },
+          "load_fraction": 0.92,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6915422885572139,
+          "routed_fraction_low": 0.31654676258992803,
+          "state_effect_pass": true,
+          "workload": "balanced"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.5858115200163907,
+              "high_mean": 39.884878048780486,
+              "low_mean": -24.053939393939395
+            },
+            "running_imbalance": {
+              "cohen_d": 0.6888722304281394,
+              "high_mean": 0.38926829268292684,
+              "low_mean": -0.22484848484848485
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.11671115759865938,
+              "high_mean": 0.010731707317073172,
+              "low_mean": -0.0018181818181818182
+            }
+          },
+          "load_fraction": 0.55,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6894409937888198,
+          "routed_fraction_low": 0.31313131313131315,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.6244375539617095,
+              "high_mean": 44.38006230529595,
+              "low_mean": -25.793185893604303
+            },
+            "running_imbalance": {
+              "cohen_d": 0.5986041334581941,
+              "high_mean": 0.3644859813084112,
+              "low_mean": -0.15481171548117154
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.049080462167143665,
+              "high_mean": 0.0020768431983385254,
+              "low_mean": -0.001195457262402869
+            }
+          },
+          "load_fraction": 0.55,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6923076923076923,
+          "routed_fraction_low": 0.3211009174311927,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8289192583867414,
+              "high_mean": 56.250786516853935,
+              "low_mean": -60.35923076923077
+            },
+            "running_imbalance": {
+              "cohen_d": 1.0271741410290771,
+              "high_mean": 0.5065168539325843,
+              "low_mean": -0.583076923076923
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.09601826882526601,
+              "high_mean": 0.004943820224719101,
+              "low_mean": -0.004615384615384616
+            }
+          },
+          "load_fraction": 0.75,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6888888888888889,
+          "routed_fraction_low": 0.3114754098360656,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8432979490956359,
+              "high_mean": 57.248988764044945,
+              "low_mean": -59.099622641509434
+            },
+            "running_imbalance": {
+              "cohen_d": 0.9075314515555168,
+              "high_mean": 0.4750561797752809,
+              "low_mean": -0.49886792452830186
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.09491814826870755,
+              "high_mean": 0.004943820224719101,
+              "low_mean": -0.0037735849056603774
+            }
+          },
+          "load_fraction": 0.75,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6857142857142857,
+          "routed_fraction_low": 0.30708661417322836,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "on_off_burst",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8248709461515747,
+              "high_mean": 60.2287323943662,
+              "low_mean": -63.4848
+            },
+            "running_imbalance": {
+              "cohen_d": 1.0098468764110038,
+              "high_mean": 0.6473239436619719,
+              "low_mean": -0.6053333333333333
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.09577347185585153,
+              "high_mean": 0.008450704225352112,
+              "low_mean": -0.0048
+            }
+          },
+          "load_fraction": 0.92,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6919642857142857,
+          "routed_fraction_low": 0.3108108108108108,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        },
+        {
+          "arrival_process": "poisson",
+          "effects": {
+            "remaining_imbalance": {
+              "cohen_d": 0.8038206240173874,
+              "high_mean": 41.9706976744186,
+              "low_mean": -71.24813559322034
+            },
+            "running_imbalance": {
+              "cohen_d": 0.978558926554837,
+              "high_mean": 0.49209302325581394,
+              "low_mean": -0.6040677966101695
+            },
+            "waiting_imbalance": {
+              "cohen_d": 0.17332796616425894,
+              "high_mean": 0.010697674418604652,
+              "low_mean": -0.01152542372881356
+            }
+          },
+          "load_fraction": 0.92,
+          "route_direction_pass": true,
+          "routed_fraction_high": 0.6941176470588235,
+          "routed_fraction_low": 0.29545454545454547,
+          "state_effect_pass": true,
+          "workload": "mixed-bimodal"
+        }
+      ],
+      "control_dataset_ready": true,
+      "control_identifiability_ready": true,
+      "fast_windows": 108000,
+      "runs": 36,
+      "schema_version": "servingrom.control_dataset_quality.v1",
+      "slow_windows": 4320,
+      "split_fast_windows": {
+        "test": 36000,
+        "train": 36000,
+        "validation": 36000
+      }
+    },
+    "sha256_manifest": "1ad46fcaadc6878db5a5f801d38ad95a8da991de2eee1f75f5b59f89363b5504",
+    "verified_file_count": 27
+  },
+  "error_attribution": {
+    "not_used_for_selection": true,
+    "test": {
+      "oracle_kv_oracle_waiting_delay": {
+        "handoff": {
+          "requests": 0.0,
+          "tokens": 0.0
+        },
+        "waiting": {
+          "requests": 0.0,
+          "tokens": 0.0
+        }
+      },
+      "oracle_kv_predicted_waiting": {
+        "handoff": {
+          "requests": 0.0,
+          "tokens": 0.0
+        },
+        "waiting": {
+          "requests": 0.6540588012796213,
+          "tokens": 0.702955380728478
+        }
+      },
+      "predicted_kv_oracle_waiting_delay": {
+        "handoff": {
+          "requests": 0.62725004818718,
+          "tokens": 0.6258545573015974
+        },
+        "waiting": {
+          "requests": 0.8253477510005972,
+          "tokens": 0.8335740364956185
+        }
+      }
+    },
+    "validation": {
+      "oracle_kv_oracle_waiting_delay": {
+        "handoff": {
+          "requests": 0.0,
+          "tokens": 0.0
+        },
+        "waiting": {
+          "requests": 0.0,
+          "tokens": 0.0
+        }
+      },
+      "oracle_kv_predicted_waiting": {
+        "handoff": {
+          "requests": 0.0,
+          "tokens": 0.0
+        },
+        "waiting": {
+          "requests": 0.601929265428846,
+          "tokens": 0.6414479090848757
+        }
+      },
+      "predicted_kv_oracle_waiting_delay": {
+        "handoff": {
+          "requests": 0.5752697209123396,
+          "tokens": 0.5483847016497371
+        },
+        "waiting": {
+          "requests": 0.7645528515426074,
+          "tokens": 0.77543386842769
+        }
+      }
+    }
+  },
+  "phase_transition_ready": false,
+  "schema_version": "servingrom.step15c2b3.result.v1",
+  "selected": {
+    "feature_set": "phase_size_load",
+    "ridge": 1.0,
+    "test": {
+      "conservation_residual_max": 0.0,
+      "differential_nrmse": {
+        "handoff": {
+          "requests": 0.62725004818718,
+          "tokens": 0.6258545573015974
+        },
+        "waiting": {
+          "requests": 1.0121873150573182,
+          "tokens": 1.0630138661136772
+        }
+      },
+      "finite": true,
+      "per_run": [
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.5,
+              "tokens": 0.4954464900942608
+            },
+            "kv_ready": {
+              "requests": 0.11704114719613055,
+              "tokens": 0.05167423893288018
+            }
+          },
+          "load": 55,
+          "run_id": "sr-control-v1-balanced-l55-poisson-test-20260810T075350Z",
+          "running": {
+            "requests": 0.5086299358176418,
+            "tokens": 0.2607826855864327
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.28867513459481287,
+              "tokens": 0.14433756729740643
+            },
+            "waiting": {
+              "requests": 1.0,
+              "tokens": 0.9235481451827989
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.4318894504492167,
+              "tokens": 0.4896469119280297
+            },
+            "kv_ready": {
+              "requests": 0.3708990935094579,
+              "tokens": 0.3810881994599608
+            }
+          },
+          "load": 55,
+          "run_id": "sr-control-v1-balanced-l55-on_off_burst-test-20260810T083512Z",
+          "running": {
+            "requests": 0.4795799927207751,
+            "tokens": 0.281196868848351
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.8744746321952062,
+              "tokens": 0.8325078419634815
+            },
+            "waiting": {
+              "requests": 1.06321906614239,
+              "tokens": 1.0826500577476472
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.45153460016440716,
+              "tokens": 0.4065578140908709
+            },
+            "kv_ready": {
+              "requests": 0.2594372608313854,
+              "tokens": 0.20063941702295685
+            }
+          },
+          "load": 75,
+          "run_id": "sr-control-v1-balanced-l75-poisson-test-20260810T102650Z",
+          "running": {
+            "requests": 0.48047533400441866,
+            "tokens": 0.2518843140193828
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.5640760748177662,
+              "tokens": 0.36738171586699064
+            },
+            "waiting": {
+              "requests": 1.1697953037312037,
+              "tokens": 1.1473690322657883
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.38254602783800296,
+              "tokens": 0.411113225896519
+            },
+            "kv_ready": {
+              "requests": 0.32378806290136664,
+              "tokens": 0.350122924317534
+            }
+          },
+          "load": 75,
+          "run_id": "sr-control-v1-balanced-l75-on_off_burst-test-20260810T110928Z",
+          "running": {
+            "requests": 0.5214821146787484,
+            "tokens": 0.25707973354048586
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.6009252125773316,
+              "tokens": 0.6350707969408386
+            },
+            "waiting": {
+              "requests": 0.8542421961772491,
+              "tokens": 0.8598467845441973
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.45573271518765,
+              "tokens": 0.47469081480608677
+            },
+            "kv_ready": {
+              "requests": 0.2920125302610444,
+              "tokens": 0.28739497247949497
+            }
+          },
+          "load": 92,
+          "run_id": "sr-control-v1-balanced-l92-poisson-test-20260810T115250Z",
+          "running": {
+            "requests": 0.4572438940924567,
+            "tokens": 0.2481789021162946
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.7416198487095663,
+              "tokens": 0.8881060715737716
+            },
+            "waiting": {
+              "requests": 1.0776318121606494,
+              "tokens": 1.1708377031648398
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.4184306096405652,
+              "tokens": 0.3986973006834312
+            },
+            "kv_ready": {
+              "requests": 0.27308656354064853,
+              "tokens": 0.28550626654894823
+            }
+          },
+          "load": 92,
+          "run_id": "sr-control-v1-balanced-l92-on_off_burst-test-20260810T123629Z",
+          "running": {
+            "requests": 0.49834618893573257,
+            "tokens": 0.23509128759152711
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.5310850045437944,
+              "tokens": 0.4913036844405175
+            },
+            "waiting": {
+              "requests": 0.7615773105863908,
+              "tokens": 0.7752323662456805
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.4230217115244236,
+              "tokens": 0.40659187224102966
+            },
+            "kv_ready": {
+              "requests": 0.27003086243366087,
+              "tokens": 0.23580053109413426
+            }
+          },
+          "load": 55,
+          "run_id": "sr-control-v1-mixed-bimodal-l55-poisson-test-20260810T131912Z",
+          "running": {
+            "requests": 0.49614390701823263,
+            "tokens": 0.23405366183752185
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.5916079783099616,
+              "tokens": 0.5643326479831003
+            },
+            "waiting": {
+              "requests": 1.3008872711759818,
+              "tokens": 1.4065066190975488
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.4913036844405175,
+              "tokens": 0.5767740711726363
+            },
+            "kv_ready": {
+              "requests": 0.33769081675298523,
+              "tokens": 0.3703684312534074
+            }
+          },
+          "load": 55,
+          "run_id": "sr-control-v1-mixed-bimodal-l55-on_off_burst-test-20260810T140110Z",
+          "running": {
+            "requests": 0.5064777086042711,
+            "tokens": 0.24604056939082486
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.5694947974514994,
+              "tokens": 0.6312474019295035
+            },
+            "waiting": {
+              "requests": 1.1978241142570356,
+              "tokens": 1.446411166701189
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.45883146774112354,
+              "tokens": 0.38469784533471374
+            },
+            "kv_ready": {
+              "requests": 0.2992528008322899,
+              "tokens": 0.3301511641477877
+            }
+          },
+          "load": 75,
+          "run_id": "sr-control-v1-mixed-bimodal-l75-poisson-test-20260810T144401Z",
+          "running": {
+            "requests": 0.4847927858558952,
+            "tokens": 0.25448391172428925
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.5694947974514994,
+              "tokens": 0.6298067441322038
+            },
+            "waiting": {
+              "requests": 1.1766968108291043,
+              "tokens": 1.1028991588635149
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.45883146774112354,
+              "tokens": 0.4585461005608798
+            },
+            "kv_ready": {
+              "requests": 0.3020398486548399,
+              "tokens": 0.27440940519639706
+            }
+          },
+          "load": 75,
+          "run_id": "sr-control-v1-mixed-bimodal-l75-on_off_burst-test-20260810T152721Z",
+          "running": {
+            "requests": 0.4392664093286366,
+            "tokens": 0.23896304505936988
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.6373774391990981,
+              "tokens": 0.5779308125934014
+            },
+            "waiting": {
+              "requests": 0.9219544457292888,
+              "tokens": 1.002723563827312
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.44254457100881583,
+              "tokens": 0.5699850281743968
+            },
+            "kv_ready": {
+              "requests": 0.325875267956141,
+              "tokens": 0.39092700119815305
+            }
+          },
+          "load": 92,
+          "run_id": "sr-control-v1-mixed-bimodal-l92-poisson-test-20260810T161131Z",
+          "running": {
+            "requests": 0.4489822867235159,
+            "tokens": 0.19996432006552178
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.6226998490772391,
+              "tokens": 0.6541741060177961
+            },
+            "waiting": {
+              "requests": 1.024099842693513,
+              "tokens": 1.2094834363082527
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.4341081063794088,
+              "tokens": 0.44932601940794753
+            },
+            "kv_ready": {
+              "requests": 0.3808084895852261,
+              "tokens": 0.35883128968792966
+            }
+          },
+          "load": 92,
+          "run_id": "sr-control-v1-mixed-bimodal-l92-on_off_burst-test-20260810T165600Z",
+          "running": {
+            "requests": 0.4532067865044115,
+            "tokens": 0.2761072203920459
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.7453559924999299,
+              "tokens": 0.7920545608418825
+            },
+            "waiting": {
+              "requests": 1.0,
+              "tokens": 0.9781473990631209
+            }
+          },
+          "workload": "mixed-bimodal"
+        }
+      ],
+      "running": {
+        "requests": 0.47585828811670133,
+        "tokens": 0.24787743570455045
+      },
+      "transition_flow_nrmse": {
+        "admission": {
+          "requests": 0.44458400935428877,
+          "tokens": 0.4647044833291037
+        },
+        "kv_ready": {
+          "requests": 0.30943212888073296,
+          "tokens": 0.31471788101525705
+        }
+      },
+      "workload_load_groups": {
+        "balanced.l55": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.5815748833950095,
+              "tokens": 0.48842270463044396
+            },
+            "waiting": {
+              "requests": 1.031609533071195,
+              "tokens": 1.003099101465223
+            }
+          }
+        },
+        "balanced.l75": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.5825006436975488,
+              "tokens": 0.5012262564039146
+            },
+            "waiting": {
+              "requests": 1.0120187499542264,
+              "tokens": 1.0036079084049927
+            }
+          }
+        },
+        "balanced.l92": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.6363524266266803,
+              "tokens": 0.6897048780071445
+            },
+            "waiting": {
+              "requests": 0.9196045613735201,
+              "tokens": 0.9730350347052601
+            }
+          }
+        },
+        "mixed-bimodal.l55": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.5805513878807305,
+              "tokens": 0.597790024956302
+            },
+            "waiting": {
+              "requests": 1.2493556927165086,
+              "tokens": 1.426458892899369
+            }
+          }
+        },
+        "mixed-bimodal.l75": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.6034361183252988,
+              "tokens": 0.6038687783628026
+            },
+            "waiting": {
+              "requests": 1.0493256282791965,
+              "tokens": 1.0528113613454133
+            }
+          }
+        },
+        "mixed-bimodal.l92": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.6840279207885844,
+              "tokens": 0.7231143334298393
+            },
+            "waiting": {
+              "requests": 1.0120499213467564,
+              "tokens": 1.0938154176856867
+            }
+          }
+        }
+      }
+    },
+    "test_ready": false,
+    "validation": {
+      "conservation_residual_max": 0.0,
+      "differential_nrmse": {
+        "handoff": {
+          "requests": 0.5752697209123396,
+          "tokens": 0.5483847016497371
+        },
+        "waiting": {
+          "requests": 0.9233942845994434,
+          "tokens": 0.9381833192321812
+        }
+      },
+      "finite": true,
+      "per_run": [
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.3832657764100933,
+              "tokens": 0.35336305228037057
+            },
+            "kv_ready": {
+              "requests": 0.36413827742064264,
+              "tokens": 0.4207474907840256
+            }
+          },
+          "load": 55,
+          "run_id": "sr-control-v1-balanced-l55-poisson-validation-20260810T074003Z",
+          "running": {
+            "requests": 0.47906866199639797,
+            "tokens": 0.21524827587466022
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.7071067811865476,
+              "tokens": 0.8819171036881969
+            },
+            "waiting": {
+              "requests": 1.1470786693528088,
+              "tokens": 1.0701220913160239
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.3614599097156672,
+              "tokens": 0.34399612400917157
+            },
+            "kv_ready": {
+              "requests": 0.2835524820033344,
+              "tokens": 0.2516611478423583
+            }
+          },
+          "load": 55,
+          "run_id": "sr-control-v1-balanced-l55-on_off_burst-validation-20260810T082115Z",
+          "running": {
+            "requests": 0.4805626140221895,
+            "tokens": 0.2439716436598275
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.6324555320336759,
+              "tokens": 0.5448623679425842
+            },
+            "waiting": {
+              "requests": 0.861356769214109,
+              "tokens": 0.8177035240565115
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.4446556321230028,
+              "tokens": 0.4438967616184753
+            },
+            "kv_ready": {
+              "requests": 0.30208401621355446,
+              "tokens": 0.32489916153381576
+            }
+          },
+          "load": 75,
+          "run_id": "sr-control-v1-balanced-l75-poisson-validation-20260810T090318Z",
+          "running": {
+            "requests": 0.46111106486586334,
+            "tokens": 0.19955500096106316
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.6030226891555273,
+              "tokens": 0.6063390625908325
+            },
+            "waiting": {
+              "requests": 1.0177004891982149,
+              "tokens": 1.0559867014641162
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.3992023920278996,
+              "tokens": 0.46031876975429387
+            },
+            "kv_ready": {
+              "requests": 0.22041550751119351,
+              "tokens": 0.24296135052640264
+            }
+          },
+          "load": 75,
+          "run_id": "sr-control-v1-balanced-l75-on_off_burst-validation-20260810T105508Z",
+          "running": {
+            "requests": 0.4428572009748739,
+            "tokens": 0.21611357443470117
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.4629100498862757,
+              "tokens": 0.517219415303485
+            },
+            "waiting": {
+              "requests": 0.9258200997725514,
+              "tokens": 0.9898987309252585
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.35691530512412484,
+              "tokens": 0.3558238950066494
+            },
+            "kv_ready": {
+              "requests": 0.23866718525271902,
+              "tokens": 0.23877833283255886
+            }
+          },
+          "load": 92,
+          "run_id": "sr-control-v1-balanced-l92-poisson-validation-20260810T113808Z",
+          "running": {
+            "requests": 0.49793291292942343,
+            "tokens": 0.22722659528845096
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.5388159060803247,
+              "tokens": 0.5593598444497264
+            },
+            "waiting": {
+              "requests": 0.8100925873009825,
+              "tokens": 0.7901123063510648
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.4236592728681617,
+              "tokens": 0.4530010978835249
+            },
+            "kv_ready": {
+              "requests": 0.3501151884184551,
+              "tokens": 0.36544320286200405
+            }
+          },
+          "load": 92,
+          "run_id": "sr-control-v1-balanced-l92-on_off_burst-validation-20260810T122145Z",
+          "running": {
+            "requests": 0.5275511580877371,
+            "tokens": 0.24955584717859824
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.5121475197315839,
+              "tokens": 0.5447347107028433
+            },
+            "waiting": {
+              "requests": 0.8597269536210951,
+              "tokens": 0.8585802937675203
+            }
+          },
+          "workload": "balanced"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.3740557384578547,
+              "tokens": 0.4309275691540119
+            },
+            "kv_ready": {
+              "requests": 0.2566001196398337,
+              "tokens": 0.22593163680735606
+            }
+          },
+          "load": 55,
+          "run_id": "sr-control-v1-mixed-bimodal-l55-poisson-validation-20260810T130501Z",
+          "running": {
+            "requests": 0.47675005743787147,
+            "tokens": 0.24446252978443667
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.6324555320336759,
+              "tokens": 0.5547001962252291
+            },
+            "waiting": {
+              "requests": 1.2382783747337807,
+              "tokens": 1.42488702369803
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.3795626385857405,
+              "tokens": 0.3113550379264618
+            },
+            "kv_ready": {
+              "requests": 0.276172385369497,
+              "tokens": 0.2736618063832352
+            }
+          },
+          "load": 55,
+          "run_id": "sr-control-v1-mixed-bimodal-l55-on_off_burst-validation-20260810T134703Z",
+          "running": {
+            "requests": 0.5349148815203527,
+            "tokens": 0.2647429004748542
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.5570860145311556,
+              "tokens": 0.5609681940050744
+            },
+            "waiting": {
+              "requests": 0.8574929257125442,
+              "tokens": 0.8450077681593032
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.4435327625727437,
+              "tokens": 0.47211494640885765
+            },
+            "kv_ready": {
+              "requests": 0.31260177495791736,
+              "tokens": 0.28842487435306374
+            }
+          },
+          "load": 75,
+          "run_id": "sr-control-v1-mixed-bimodal-l75-poisson-validation-20260810T142927Z",
+          "running": {
+            "requests": 0.49301971086562685,
+            "tokens": 0.24930900125720656
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.6282808624375432,
+              "tokens": 0.6940834422585791
+            },
+            "waiting": {
+              "requests": 1.1105554165971787,
+              "tokens": 1.0028449559617905
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.40406101782088427,
+              "tokens": 0.4198492008198034
+            },
+            "kv_ready": {
+              "requests": 0.2317137785453969,
+              "tokens": 0.26503964945295355
+            }
+          },
+          "load": 75,
+          "run_id": "sr-control-v1-mixed-bimodal-l75-on_off_burst-validation-20260810T151247Z",
+          "running": {
+            "requests": 0.5110703212646572,
+            "tokens": 0.24082255005867984
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.45883146774112354,
+              "tokens": 0.4518148853761704
+            },
+            "waiting": {
+              "requests": 0.7924058156930615,
+              "tokens": 0.9497028397719824
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.4322189107537832,
+              "tokens": 0.4457900386884518
+            },
+            "kv_ready": {
+              "requests": 0.3476767476825577,
+              "tokens": 0.26220375805982016
+            }
+          },
+          "load": 92,
+          "run_id": "sr-control-v1-mixed-bimodal-l92-poisson-validation-20260810T155628Z",
+          "running": {
+            "requests": 0.47559599463947777,
+            "tokens": 0.22246730987515387
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.6841674549282352,
+              "tokens": 0.4472135954999579
+            },
+            "waiting": {
+              "requests": 1.0190493307301363,
+              "tokens": 1.0898952158123523
+            }
+          },
+          "workload": "mixed-bimodal"
+        },
+        {
+          "flows": {
+            "admission": {
+              "requests": 0.3597384670922507,
+              "tokens": 0.36734613352828666
+            },
+            "kv_ready": {
+              "requests": 0.27255405754769874,
+              "tokens": 0.2616104185299251
+            }
+          },
+          "load": 92,
+          "run_id": "sr-control-v1-mixed-bimodal-l92-on_off_burst-validation-20260810T164101Z",
+          "running": {
+            "requests": 0.431024859006191,
+            "tokens": 0.19872465607278564
+          },
+          "stages": {
+            "handoff": {
+              "requests": 0.5204164998665332,
+              "tokens": 0.45655100324651665
+            },
+            "waiting": {
+              "requests": 0.7440238091428449,
+              "tokens": 0.744874962444986
+            }
+          },
+          "workload": "mixed-bimodal"
+        }
+      ],
+      "running": {
+        "requests": 0.48247665692127756,
+        "tokens": 0.2302467685988799
+      },
+      "transition_flow_nrmse": {
+        "admission": {
+          "requests": 0.4001212672454721,
+          "tokens": 0.41240518201849025
+        },
+        "kv_ready": {
+          "requests": 0.2917079747740388,
+          "tokens": 0.28721082001370907
+        }
+      },
+      "workload_load_groups": {
+        "balanced.l55": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.6697811566101117,
+              "tokens": 0.7133897358153906
+            },
+            "waiting": {
+              "requests": 1.004217719283459,
+              "tokens": 0.9439128076862677
+            }
+          }
+        },
+        "balanced.l75": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.5329663695209015,
+              "tokens": 0.5617792389471588
+            },
+            "waiting": {
+              "requests": 0.9717602944853831,
+              "tokens": 1.0229427161946874
+            }
+          }
+        },
+        "balanced.l92": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.5254817129059544,
+              "tokens": 0.5520472775762848
+            },
+            "waiting": {
+              "requests": 0.8349097704610389,
+              "tokens": 0.8243463000592925
+            }
+          }
+        },
+        "mixed-bimodal.l55": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.5947707732824157,
+              "tokens": 0.5578341951151518
+            },
+            "waiting": {
+              "requests": 1.0478856502231624,
+              "tokens": 1.1349473959286667
+            }
+          }
+        },
+        "mixed-bimodal.l75": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.5435561650893334,
+              "tokens": 0.5729491638173747
+            },
+            "waiting": {
+              "requests": 0.9514806161451201,
+              "tokens": 0.9762738978668865
+            }
+          }
+        },
+        "mixed-bimodal.l92": {
+          "run_count": 2,
+          "stage_mean": {
+            "handoff": {
+              "requests": 0.6022919773973842,
+              "tokens": 0.4518822993732373
+            },
+            "waiting": {
+              "requests": 0.8815365699364905,
+              "tokens": 0.9173850891286691
+            }
+          }
+        }
+      }
+    },
+    "validation_ready": false
+  },
+  "transition_pipeline_ready": false
+}

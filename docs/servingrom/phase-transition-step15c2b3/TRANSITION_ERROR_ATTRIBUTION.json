@@ -1,0 +1,67 @@
+{
+  "not_used_for_selection": true,
+  "test": {
+    "oracle_kv_oracle_waiting_delay": {
+      "handoff": {
+        "requests": 0.0,
+        "tokens": 0.0
+      },
+      "waiting": {
+        "requests": 0.0,
+        "tokens": 0.0
+      }
+    },
+    "oracle_kv_predicted_waiting": {
+      "handoff": {
+        "requests": 0.0,
+        "tokens": 0.0
+      },
+      "waiting": {
+        "requests": 0.6540588012796213,
+        "tokens": 0.702955380728478
+      }
+    },
+    "predicted_kv_oracle_waiting_delay": {
+      "handoff": {
+        "requests": 0.62725004818718,
+        "tokens": 0.6258545573015974
+      },
+      "waiting": {
+        "requests": 0.8253477510005972,
+        "tokens": 0.8335740364956185
+      }
+    }
+  },
+  "validation": {
+    "oracle_kv_oracle_waiting_delay": {
+      "handoff": {
+        "requests": 0.0,
+        "tokens": 0.0
+      },
+      "waiting": {
+        "requests": 0.0,
+        "tokens": 0.0
+      }
+    },
+    "oracle_kv_predicted_waiting": {
+      "handoff": {
+        "requests": 0.0,
+        "tokens": 0.0
+      },
+      "waiting": {
+        "requests": 0.601929265428846,
+        "tokens": 0.6414479090848757
+      }
+    },
+    "predicted_kv_oracle_waiting_delay": {
+      "handoff": {
+        "requests": 0.5752697209123396,
+        "tokens": 0.5483847016497371
+      },
+      "waiting": {
+        "requests": 0.7645528515426074,
+        "tokens": 0.77543386842769
+      }
+    }
+  }
+}
