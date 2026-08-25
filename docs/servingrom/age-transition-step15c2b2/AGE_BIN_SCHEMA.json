@@ -1,0 +1,22 @@
+{
+  "dt_seconds": 0.2,
+  "edges_seconds": {
+    "handoff": [
+      0.0,
+      0.2,
+      0.4,
+      0.6000000000000001,
+      null
+    ],
+    "waiting": [
+      0.0,
+      0.2,
+      0.4,
+      0.6000000000000001,
+      null
+    ]
+  },
+  "schema_version": "servingrom.age-bin-schema.v1",
+  "selected_from": "train_only",
+  "wide_bin_implementation": "internal 200ms cohort aging; bins are reporting and shared-hazard groups"
+}

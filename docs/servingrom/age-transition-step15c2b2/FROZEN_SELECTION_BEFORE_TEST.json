@@ -1,0 +1,10 @@
+{
+  "age_bin_schema_frozen": true,
+  "candidate": "H1",
+  "h1_ready": false,
+  "h2_executed": false,
+  "schema_version": "servingrom.age-transition.selection.v1",
+  "selection_split": "validation",
+  "smoothing": 2.0,
+  "test_accessed": false
+}

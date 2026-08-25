@@ -1,0 +1,22 @@
+{
+  "decoder_order": [
+    "A",
+    "B"
+  ],
+  "quantities": [
+    "requests",
+    "tokens"
+  ],
+  "rows": 108000,
+  "schema_version": "servingrom.age-inventory.v1",
+  "source_dataset_sha256_manifest": "1ad46fcaadc6878db5a5f801d38ad95a8da991de2eee1f75f5b59f89363b5504",
+  "split_rows": {
+    "test": 36000,
+    "train": 36000,
+    "validation": 36000
+  },
+  "stages": [
+    "handoff",
+    "waiting"
+  ]
+}

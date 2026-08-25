@@ -1,0 +1,11 @@
+{
+  "all_inventories_nonnegative_by_construction": true,
+  "decoder_dwell_symmetry": {
+    "handoff": 0.13233693588897216,
+    "waiting": 0.0058171173637794685
+  },
+  "shared_parameters_across_A_B": true,
+  "test_conservation_residual_max": 9.403610702618526e-14,
+  "validation_conservation_residual_max": 1.0979325087978609e-13,
+  "zero_inventory_zero_inflow_pass": true
+}

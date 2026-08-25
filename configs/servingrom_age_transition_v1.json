@@ -1,0 +1,17 @@
+{
+  "schema_version": "servingrom.age-transition.config.v1",
+  "model_id": "servingrom-age-transition-v1",
+  "dataset_id": "servingrom-control-dataset-v1",
+  "fast_window_ms": 200,
+  "running_window_ms": 1000,
+  "candidate_smoothing": [0.5, 1.0, 2.0],
+  "minimum_relative_improvement": 0.05,
+  "readiness": {
+    "handoff_request_nrmse": 0.70,
+    "handoff_token_nrmse": 0.70,
+    "waiting_request_nrmse": 0.70,
+    "waiting_token_nrmse": 0.70,
+    "running_request_nrmse": 0.60,
+    "running_token_nrmse": 0.40
+  }
+}
